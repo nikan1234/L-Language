@@ -16,7 +16,7 @@ public class Main {
         ArgumentParser parser = ArgumentParsers
                 .newFor("L* Program translator")
                 .build().defaultHelp(true);
-        parser.addArgument("-i", "--input-file");
+        parser.addArgument("-i", "--input-file").required(true);
 
         try {
             final Namespace ns = parser.parseArgs(args);
