@@ -1,0 +1,138 @@
+options {
+  STATIC = false;
+  MULTI = true;
+  NODE_DEFAULT_VOID=true;
+}
+
+PARSER_BEGIN(LStatement)
+package ru.nsu.logic.lang.grammar;
+public class LStatement {}
+PARSER_END(LStatement)
+
+SKIP : {
+  " "
+| "\t"
+| "\n"
+| "\r"
+}
+
+TOKEN : {
+  < CLASS: "class">
+  |
+  < FUNCTION: "function">
+  |
+  < INHERIT: "extends">
+  |
+  <END: ";">
+  |
+  < OBR: "{" >
+  |
+  < CBR: "}" >
+  |
+  < OPAR  : "(" >
+  |
+  < CPAR  : ")" >
+  |
+  <COMMA: ",">
+  |
+  <ACCESS_PUBLIC: "public">
+  |
+  <ACCESS_PRIVATE: "private">
+  |
+  <ACCESS_PROTECTED: "protected">
+  |
+  < Identifier: ["a"-"z","A"-"Z",".","*", "+", "!", "-", "_", "?", "<", ">", "=", "/", "&"] ( ["a"-"z","A"-"Z","0"-"9",".","*", "+", "!", "-", "_", "?", "<", ">", "=", "/", "&" ] )* >
+  |
+  < IntVal: ( ["0"-"9"] )+ >
+  |
+  < FloatVal: ( ["0"-"9"] )+ "." ( ["0"-"9"] )+  >
+  |
+  < StrVal: "\"" (~["\""])* "\"" >
+}
+
+/*-----------------Common-----------------*/
+
+String AccessType() #AccessType :
+{Token t;}
+{
+  (t=<ACCESS_PUBLIC> | t=<ACCESS_PRIVATE> | t=<ACCESS_PROTECTED>)
+  {jjtThis.jjtSetValue(t.image);return t.image;}
+}
+
+String Identifier() #Identifier :
+{Token t;}
+{
+  t=<Identifier> {jjtThis.jjtSetValue(t.image); return t.image;}
+}
+
+long IntVal() #IntVal :
+{Token t;}
+{
+  t=<IntVal> {long v = Long.valueOf(t.image); jjtThis.jjtSetValue(v); return v;}
+}
+
+double FloatVal() #FloatVal :
+{Token t;}
+{
+  t=<FloatVal> {double v = Double.valueOf(t.image); jjtThis.jjtSetValue(v); return v;}
+}
+
+
+/*-----------------Declarations-----------------*/
+
+void ProgramDecl():
+{}
+{
+  FunctionDecl() | ClassDecl()
+}
+
+
+/*-----------------Class-----------------*/
+
+void ClassDecl() #ClassDecl :
+{String className;}
+{
+  <CLASS> className=Identifier() [InheritanceDecl()] <OBR> (ClassMemberDecl())* <CBR>
+  {jjtThis.setClassName(className);}
+}
+
+void InheritanceDecl() #InheritanceDecl :
+{String className;}
+{
+  <INHERIT> className=Identifier()
+  {jjtThis.jjtSetValue(className);}
+}
+
+void ClassMemberDecl() #ClassMemberDecl :
+{String access; String member;}
+{
+  access=AccessType() member=Identifier() <END>
+  {jjtThis.setAccessType(ASTClassMemberDecl.AccessType.valueOf(access.toUpperCase()));
+   jjtThis.jjtSetValue(member);}
+}
+
+/*-----------------Function-----------------*/
+
+String FunctionParamDecl() # FunctionParamDecl :
+{String arg;}
+{
+  arg=Identifier()
+  {jjtThis.setParamName(arg);return arg;}
+}
+
+void FunctionDecl() #FunctionDecl :
+{String functionName;}
+{
+  <FUNCTION> functionName=Identifier()
+  <OPAR> (FunctionParamDecl() (<COMMA> FunctionParamDecl())*)? <CPAR>
+  <OBR> <CBR>
+  {jjtThis.setFunctionName(functionName);}
+}
+
+/* -----------------Program-----------------*/
+ASTLLangProgram LLangProgram() #LLangProgram :
+{}
+{
+  (ProgramDecl())* <EOF>
+   {return jjtThis;}
+}
