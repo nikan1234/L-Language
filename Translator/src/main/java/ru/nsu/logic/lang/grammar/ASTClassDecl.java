@@ -8,6 +8,10 @@ public class ASTClassDecl extends SimpleNode {
     @Setter
     String className;
 
+    @Getter
+    @Setter
+    String baseClass;
+
     public ASTClassDecl(int i) {
         super(i);
     }
@@ -18,6 +22,6 @@ public class ASTClassDecl extends SimpleNode {
 
     @Override
     public String toString() {
-        return "Class " + className;
+        return "Class " + className + ((baseClass != null) ? " extends " + baseClass : "");
     }
 }

@@ -23,7 +23,7 @@ TOKEN : {
   |
   < INHERIT: "extends">
   |
-  <END: ";">
+  < END: ";">
   |
   < OBR: "{" >
   |
@@ -33,15 +33,25 @@ TOKEN : {
   |
   < CPAR  : ")" >
   |
-  <COMMA: ",">
+  < COMMA: "," >
   |
-  <ACCESS_PUBLIC: "public">
+  < DOT: "." >
   |
-  <ACCESS_PRIVATE: "private">
+  < ASSIGN: ":=">
   |
-  <ACCESS_PROTECTED: "protected">
+  < THIS: "this">
   |
-  < Identifier: ["a"-"z","A"-"Z",".","*", "+", "!", "-", "_", "?", "<", ">", "=", "/", "&"] ( ["a"-"z","A"-"Z","0"-"9",".","*", "+", "!", "-", "_", "?", "<", ">", "=", "/", "&" ] )* >
+  < RETURN: "return">
+  |
+  < ACCESS_PUBLIC: "public">
+  |
+  < ACCESS_PRIVATE: "private">
+  |
+  < ACCESS_PROTECTED: "protected">
+  |
+  < Identifier: ["a"-"z","A"-"Z", "_"] ( ["a"-"z","A"-"Z","0"-"9","_"] )* >
+  |
+  < BinaryOperator: ["+", "-", "*", "/"] >
   |
   < IntVal: ( ["0"-"9"] )+ >
   |
@@ -52,17 +62,17 @@ TOKEN : {
 
 /*-----------------Common-----------------*/
 
-String AccessType() #AccessType :
+AccessTypeEnum AccessType() :
 {Token t;}
 {
   (t=<ACCESS_PUBLIC> | t=<ACCESS_PRIVATE> | t=<ACCESS_PROTECTED>)
-  {jjtThis.jjtSetValue(t.image);return t.image;}
+  {return AccessTypeEnum.valueOf(t.image.toUpperCase());}
 }
 
-String Identifier() #Identifier :
+String Identifier() :
 {Token t;}
 {
-  t=<Identifier> {jjtThis.jjtSetValue(t.image); return t.image;}
+  t=<Identifier> {return t.image;}
 }
 
 long IntVal() #IntVal :
@@ -86,47 +96,97 @@ void ProgramDecl():
   FunctionDecl() | ClassDecl()
 }
 
+/*-----------------Function or Method commons-----------------*/
 
-/*-----------------Class-----------------*/
-
-void ClassDecl() #ClassDecl :
-{String className;}
-{
-  <CLASS> className=Identifier() [InheritanceDecl()] <OBR> (ClassMemberDecl())* <CBR>
-  {jjtThis.setClassName(className);}
-}
-
-void InheritanceDecl() #InheritanceDecl :
-{String className;}
-{
-  <INHERIT> className=Identifier()
-  {jjtThis.jjtSetValue(className);}
-}
-
-void ClassMemberDecl() #ClassMemberDecl :
-{String access; String member;}
-{
-  access=AccessType() member=Identifier() <END>
-  {jjtThis.setAccessType(ASTClassMemberDecl.AccessType.valueOf(access.toUpperCase()));
-   jjtThis.jjtSetValue(member);}
-}
-
-/*-----------------Function-----------------*/
-
-String FunctionParamDecl() # FunctionParamDecl :
+String ParamVariableDecl() # ParamVariableDecl :
 {String arg;}
 {
   arg=Identifier()
   {jjtThis.setParamName(arg);return arg;}
 }
 
+void ExecutionStatement() # ExecutionStatement :
+{}
+{ (AssignmentStmt() | ReturnStmt())* }
+
+void MemberStmt() # MemberStmt :
+{String memberName;}
+{
+  <THIS> <DOT> memberName=Identifier()
+  {jjtThis.jjtSetValue(memberName);}
+}
+
+void VariableStmt() # VariableStmt :
+{String varName;}
+{
+  varName=Identifier()
+  {jjtThis.jjtSetValue(varName);}
+}
+
+void FunctionCallStmt() # FunctionCallStmt:
+{}
+{ Identifier() <OPAR> (TermStmt() (<COMMA> TermStmt())*)? <CPAR> }
+
+void AssignmentStmt() # AssignmentStmt :
+{String variable;}
+{ (MemberStmt() | VariableStmt()) <ASSIGN> TermStmt() <END> }
+
+void ReturnStmt() # ReturnStmt :
+{}
+{ <RETURN> TermStmt() <END> }
+
+void TermStmt() :
+{}
+{
+  (IntVal() | FloatVal() | LOOKAHEAD(2) FunctionCallStmt() | VariableStmt() | MemberStmt()) [<BinaryOperator> TermStmt()]
+}
+
+
+/*-----------------Class-----------------*/
+
+void ClassDecl() #ClassDecl :
+{String className; String baseClass = null;}
+{
+  <CLASS> className=Identifier() [baseClass=InheritanceDecl()]
+  <OBR> (LOOKAHEAD(2) ClassMemberDecl() | ClassMethodDecl())*
+  <CBR>
+  {jjtThis.setClassName(className);
+   jjtThis.setBaseClass(baseClass);}
+}
+
+String InheritanceDecl() :
+{String className;}
+{
+  <INHERIT> className=Identifier()
+  {return className;}
+}
+
+void ClassMemberDecl() #ClassMemberDecl :
+{AccessTypeEnum access; String member;}
+{
+  access=AccessType() member=Identifier() <END>
+  {jjtThis.setAccessType(access);jjtThis.setName(member);}
+}
+
+void ClassMethodDecl() #ClassMethodDecl :
+{AccessTypeEnum access = AccessTypeEnum.PROTECTED; String methodName;}
+{
+  [access = AccessType()] <FUNCTION> methodName=Identifier()
+  <OPAR> (ParamVariableDecl() (<COMMA> ParamVariableDecl())*)? <CPAR>
+  <OBR> ExecutionStatement() <CBR>
+  {jjtThis.setAccessType(access);
+   jjtThis.setName(methodName);}
+}
+
+/*-----------------Function-----------------*/
+
 void FunctionDecl() #FunctionDecl :
 {String functionName;}
 {
   <FUNCTION> functionName=Identifier()
-  <OPAR> (FunctionParamDecl() (<COMMA> FunctionParamDecl())*)? <CPAR>
-  <OBR> <CBR>
-  {jjtThis.setFunctionName(functionName);}
+  <OPAR> (ParamVariableDecl() (<COMMA> ParamVariableDecl())*)? <CPAR>
+  <OBR> ExecutionStatement() <CBR>
+  {jjtThis.setName(functionName);}
 }
 
 /* -----------------Program-----------------*/

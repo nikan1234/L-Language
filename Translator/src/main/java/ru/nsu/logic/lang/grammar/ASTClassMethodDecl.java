@@ -3,27 +3,26 @@ package ru.nsu.logic.lang.grammar;
 import lombok.Getter;
 import lombok.Setter;
 
-public class ASTClassMemberDecl extends SimpleNode {
+public class ASTClassMethodDecl extends SimpleNode {
 
     @Getter
     @Setter
     private AccessTypeEnum accessType;
 
-    @Getter
     @Setter
+    @Getter
     private String name;
 
-
-    public ASTClassMemberDecl(int i) {
+    public ASTClassMethodDecl(int i) {
         super(i);
     }
 
-    public ASTClassMemberDecl(LStatement p, int i) {
+    public ASTClassMethodDecl(LStatement p, int i) {
         super(p, i);
     }
 
     @Override
     public String toString() {
-        return accessType + " " + name;
+        return accessType + " " + name + "()";
     }
 }

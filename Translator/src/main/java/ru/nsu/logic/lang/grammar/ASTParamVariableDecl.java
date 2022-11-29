@@ -3,16 +3,16 @@ package ru.nsu.logic.lang.grammar;
 import lombok.Getter;
 import lombok.Setter;
 
-public class ASTFunctionParamDecl extends SimpleNode {
+public class ASTParamVariableDecl extends SimpleNode {
     @Getter
     @Setter
     String paramName;
 
-    public ASTFunctionParamDecl(int i) {
+    public ASTParamVariableDecl(int i) {
         super(i);
     }
 
-    public ASTFunctionParamDecl(LStatement p, int i) {
+    public ASTParamVariableDecl(LStatement p, int i) {
         super(p, i);
     }
 

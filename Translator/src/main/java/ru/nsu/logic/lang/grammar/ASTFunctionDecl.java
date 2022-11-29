@@ -6,7 +6,7 @@ import lombok.Getter;
 public class ASTFunctionDecl extends SimpleNode {
     @Getter
     @Setter
-    private String functionName;
+    private String name;
 
     public ASTFunctionDecl(int i) {
         super(i);

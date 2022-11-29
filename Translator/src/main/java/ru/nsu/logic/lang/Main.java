@@ -4,6 +4,8 @@ import net.sourceforge.argparse4j.ArgumentParsers;
 import net.sourceforge.argparse4j.inf.ArgumentParser;
 import net.sourceforge.argparse4j.inf.ArgumentParserException;
 import net.sourceforge.argparse4j.inf.Namespace;
+import ru.nsu.logic.lang.compilator.LLangCompiler;
+import ru.nsu.logic.lang.compilator.LLangProgram;
 import ru.nsu.logic.lang.grammar.*;
 
 import java.io.FileInputStream;
@@ -23,7 +25,9 @@ public class Main {
             try (InputStream in = new FileInputStream(ns.getString("input_file"))) {
                 LStatement statement = new LStatement(in);
                 ASTLLangProgram program = statement.LLangProgram();
-                program.dump("");
+                LLangProgram compiled = new LLangCompiler().compile(program);
+                System.out.println(compiled.getClasses().toString());
+                System.out.println(compiled.getFunctions().toString());
 
             } catch (FileNotFoundException | ParseException e) {
                 System.err.println(e.getMessage());
@@ -36,4 +40,4 @@ public class Main {
             System.exit(1);
         }
     }
-}
+}D
