@@ -4,8 +4,9 @@ import net.sourceforge.argparse4j.ArgumentParsers;
 import net.sourceforge.argparse4j.inf.ArgumentParser;
 import net.sourceforge.argparse4j.inf.ArgumentParserException;
 import net.sourceforge.argparse4j.inf.Namespace;
-import ru.nsu.logic.lang.compilator.LLangCompiler;
-import ru.nsu.logic.lang.compilator.LLangProgram;
+import ru.nsu.logic.lang.compilator.CompilationException;
+import ru.nsu.logic.lang.compilator.CompiledProgram;
+import ru.nsu.logic.lang.compilator.Compiler;
 import ru.nsu.logic.lang.grammar.*;
 
 import java.io.FileInputStream;
@@ -24,10 +25,9 @@ public class Main {
             final Namespace ns = parser.parseArgs(args);
             try (InputStream in = new FileInputStream(ns.getString("input_file"))) {
                 LStatement statement = new LStatement(in);
-                ASTLLangProgram program = statement.LLangProgram();
-                LLangProgram compiled = new LLangCompiler().compile(program);
-                System.out.println(compiled.getClasses().toString());
-                System.out.println(compiled.getFunctions().toString());
+                LLangProgram program = statement.LLangProgram();
+                CompiledProgram compiled = new Compiler().compile(program);
+                program.dump("-");
 
             } catch (FileNotFoundException | ParseException e) {
                 System.err.println(e.getMessage());

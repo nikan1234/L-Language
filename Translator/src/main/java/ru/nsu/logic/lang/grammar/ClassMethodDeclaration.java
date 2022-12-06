@@ -2,8 +2,9 @@ package ru.nsu.logic.lang.grammar;
 
 import lombok.Getter;
 import lombok.Setter;
+import ru.nsu.logic.lang.base.IDeclaration;
 
-public class ASTClassMethodDecl extends SimpleNode {
+public class ClassMethodDeclaration extends SimpleNode implements IDeclaration {
 
     @Getter
     @Setter
@@ -13,16 +14,11 @@ public class ASTClassMethodDecl extends SimpleNode {
     @Getter
     private String name;
 
-    public ASTClassMethodDecl(int i) {
+    public ClassMethodDeclaration(int i) {
         super(i);
     }
 
-    public ASTClassMethodDecl(LStatement p, int i) {
+    public ClassMethodDeclaration(LStatement p, int i) {
         super(p, i);
-    }
-
-    @Override
-    public String toString() {
-        return accessType + " " + name + "()";
     }
 }

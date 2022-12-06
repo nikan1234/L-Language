@@ -2,10 +2,14 @@ options {
   STATIC = false;
   MULTI = true;
   NODE_DEFAULT_VOID=true;
+  NODE_PREFIX = "";
 }
 
 PARSER_BEGIN(LStatement)
 package ru.nsu.logic.lang.grammar;
+
+import java.util.*;
+import ru.nsu.logic.lang.base.*;
 public class LStatement {}
 PARSER_END(LStatement)
 
@@ -51,7 +55,7 @@ TOKEN : {
   |
   < Identifier: ["a"-"z","A"-"Z", "_"] ( ["a"-"z","A"-"Z","0"-"9","_"] )* >
   |
-  < BinaryOperator: ["+", "-", "*", "/"] >
+  < BinaryOp: ["+", "-", "*", "/"] >
   |
   < IntVal: ( ["0"-"9"] )+ >
   |
@@ -75,124 +79,168 @@ String Identifier() :
   t=<Identifier> {return t.image;}
 }
 
-long IntVal() #IntVal :
-{Token t;}
-{
-  t=<IntVal> {long v = Long.valueOf(t.image); jjtThis.jjtSetValue(v); return v;}
-}
-
-double FloatVal() #FloatVal :
-{Token t;}
-{
-  t=<FloatVal> {double v = Double.valueOf(t.image); jjtThis.jjtSetValue(v); return v;}
-}
-
 
 /*-----------------Declarations-----------------*/
 
-void ProgramDecl():
+void ProgramDeclaration():
 {}
 {
-  FunctionDecl() | ClassDecl()
+  FunctionDeclaration() | ClassDeclaration()
 }
 
 /*-----------------Function or Method commons-----------------*/
 
-String ParamVariableDecl() # ParamVariableDecl :
+String ArgumentDeclaration() # ArgumentDeclaration :
 {String arg;}
 {
   arg=Identifier()
-  {jjtThis.setParamName(arg);return arg;}
+  {jjtThis.jjtSetValue(arg);return arg;}
 }
 
-void ExecutionStatement() # ExecutionStatement :
-{}
-{ (AssignmentStmt() | ReturnStmt())* }
+/* ---------------STATEMENT -------------------------*/
 
-void MemberStmt() # MemberStmt :
+IntegerValue IntValue() #IntegerValue :
+{Token t;}
+{
+  t=<IntVal> {long v = Long.valueOf(t.image); jjtThis.setValue(v); return jjtThis;}
+}
+
+FloatValue FloatValue() #FloatValue :
+{Token t;}
+{
+  t=<FloatVal> {double v = Double.valueOf(t.image); jjtThis.setValue(v); return jjtThis;}
+}
+
+MemberStatement MemberStatement() # MemberStatement :
 {String memberName;}
 {
   <THIS> <DOT> memberName=Identifier()
-  {jjtThis.jjtSetValue(memberName);}
+  {jjtThis.setName(memberName); return jjtThis;}
 }
 
-void VariableStmt() # VariableStmt :
+VariableStatement VariableStatement() # VariableStatement :
 {String varName;}
 {
   varName=Identifier()
-  {jjtThis.jjtSetValue(varName);}
+  {jjtThis.setName(varName); return jjtThis;}
 }
 
-void FunctionCallStmt() # FunctionCallStmt:
-{}
-{ Identifier() <OPAR> (TermStmt() (<COMMA> TermStmt())*)? <CPAR> }
-
-void AssignmentStmt() # AssignmentStmt :
-{String variable;}
-{ (MemberStmt() | VariableStmt()) <ASSIGN> TermStmt() <END> }
-
-void ReturnStmt() # ReturnStmt :
-{}
-{ <RETURN> TermStmt() <END> }
-
-void TermStmt() :
-{}
+FunctionCallStatement FunctionCallStatement() # FunctionCallStatement:
+{String calledFuncName; IStatement param; List<IStatement> params = new ArrayList();}
 {
-  (IntVal() | FloatVal() | LOOKAHEAD(2) FunctionCallStmt() | VariableStmt() | MemberStmt()) [<BinaryOperator> TermStmt()]
+   calledFuncName=Identifier()
+   <OPAR>
+      (param=rvalueStatement()         {params.add(param);}
+      (<COMMA> param=rvalueStatement() {params.add(param);} )*)?
+   <CPAR>
+   {
+      jjtThis.setFunctionName(calledFuncName);
+      jjtThis.setCallParameters(params);
+      return jjtThis;
+    }
 }
+
+IStatement SingleStatement() :
+{IStatement retVal;}
+{
+  (
+    LOOKAHEAD(2) retVal = FunctionCallStatement() |
+    retVal=MemberStatement() |
+    retVal=VariableStatement() |
+    retVal=IntValue() |
+    retVal=FloatValue()
+  )
+  {return retVal;}
+}
+
+ComplexStatement ComplexStatement() # ComplexStatement :
+{IStatement lhs = null; IStatement rhs = null; Token op = null;
+ List<IStatement> args = new ArrayList();
+ List<String> ops = new ArrayList();
+}
+{ (               (lhs=SingleStatement() | <OPAR> lhs=ComplexStatement() <CPAR>) {args.add(lhs);}
+   (op=<BinaryOp> (rhs=SingleStatement() | <OPAR> rhs=ComplexStatement() <CPAR>) {args.add(rhs); ops.add(op.image);})*)
+  {jjtThis.setOperands(args); jjtThis.setOperators(ops); return jjtThis;}
+}
+
+IStatement rvalueStatement():
+{IStatement retVal;}
+{
+  (LOOKAHEAD((<OPAR> ComplexStatement() <CPAR> | SingleStatement()) <BinaryOp>)
+   retVal = ComplexStatement()
+   |
+   retVal = SingleStatement())
+  {return retVal;}
+}
+
+AssignmentStatement AssignmentStatement() # AssignmentStatement :
+{IStatement target; IStatement what;}
+{
+   (target=MemberStatement() | target=VariableStatement())
+   <ASSIGN> what = rvalueStatement()
+   {jjtThis.setTarget(target); jjtThis.setWhat(what); return jjtThis;}
+}
+
+void ReturnStatement() # ReturnStatement :
+{}
+{ <RETURN> rvalueStatement() }
+
+void AllStatements() :
+{}
+{ (LOOKAHEAD(2) AssignmentStatement() | FunctionCallStatement() | ReturnStatement()) <END> }
 
 
 /*-----------------Class-----------------*/
 
-void ClassDecl() #ClassDecl :
+void ClassDeclaration() #ClassDeclaration :
 {String className; String baseClass = null;}
 {
-  <CLASS> className=Identifier() [baseClass=InheritanceDecl()]
-  <OBR> (LOOKAHEAD(2) ClassMemberDecl() | ClassMethodDecl())*
+  <CLASS> className=Identifier() [baseClass=InheritanceDeclaration()]
+  <OBR> (LOOKAHEAD(2) ClassMemberDeclaration() | ClassMethodDeclaration())*
   <CBR>
   {jjtThis.setClassName(className);
    jjtThis.setBaseClass(baseClass);}
 }
 
-String InheritanceDecl() :
+String InheritanceDeclaration() :
 {String className;}
 {
   <INHERIT> className=Identifier()
   {return className;}
 }
 
-void ClassMemberDecl() #ClassMemberDecl :
+void ClassMemberDeclaration() #ClassMemberDeclaration :
 {AccessTypeEnum access; String member;}
 {
   access=AccessType() member=Identifier() <END>
   {jjtThis.setAccessType(access);jjtThis.setName(member);}
 }
 
-void ClassMethodDecl() #ClassMethodDecl :
+void ClassMethodDeclaration() #ClassMethodDeclaration :
 {AccessTypeEnum access = AccessTypeEnum.PROTECTED; String methodName;}
 {
   [access = AccessType()] <FUNCTION> methodName=Identifier()
-  <OPAR> (ParamVariableDecl() (<COMMA> ParamVariableDecl())*)? <CPAR>
-  <OBR> ExecutionStatement() <CBR>
+  <OPAR> (ArgumentDeclaration() (<COMMA> ArgumentDeclaration())*)? <CPAR>
+  <OBR> (AllStatements())* <CBR>
   {jjtThis.setAccessType(access);
    jjtThis.setName(methodName);}
 }
 
 /*-----------------Function-----------------*/
 
-void FunctionDecl() #FunctionDecl :
+void FunctionDeclaration() #FunctionDeclaration :
 {String functionName;}
 {
   <FUNCTION> functionName=Identifier()
-  <OPAR> (ParamVariableDecl() (<COMMA> ParamVariableDecl())*)? <CPAR>
-  <OBR> ExecutionStatement() <CBR>
+  <OPAR> (ArgumentDeclaration() (<COMMA> ArgumentDeclaration())*)? <CPAR>
+  <OBR> (AllStatements())* <CBR>
   {jjtThis.setName(functionName);}
 }
 
 /* -----------------Program-----------------*/
-ASTLLangProgram LLangProgram() #LLangProgram :
+LLangProgram LLangProgram() #LLangProgram :
 {}
 {
-  (ProgramDecl())* <EOF>
+  (ProgramDeclaration() | AllStatements())* <EOF>
    {return jjtThis;}
 }

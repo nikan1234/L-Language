@@ -1,4 +1,4 @@
-package ru.nsu.logic.lang.compilator;
+package ru.nsu.logic.lang.utils;
 
 import ru.nsu.logic.lang.grammar.Node;
 
