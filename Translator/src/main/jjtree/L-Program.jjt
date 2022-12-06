@@ -159,7 +159,7 @@ ComplexStatement ComplexStatement() # ComplexStatement :
  List<String> ops = new ArrayList();
 }
 { (               (lhs=SingleStatement() | <OPAR> lhs=ComplexStatement() <CPAR>) {args.add(lhs);}
-   (op=<BinaryOp> (rhs=SingleStatement() | <OPAR> rhs=ComplexStatement() <CPAR>) {args.add(rhs); ops.add(op.image);})*)
+   (op=<BinaryOp> (rhs=SingleStatement() | <OPAR> rhs=ComplexStatement() <CPAR>) {args.add(rhs); ops.add(op.image);})+)
   {jjtThis.setOperands(args); jjtThis.setOperators(ops); return jjtThis;}
 }
 
