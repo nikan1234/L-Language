@@ -10,6 +10,7 @@ package ru.nsu.logic.lang.grammar;
 
 import java.util.*;
 import ru.nsu.logic.lang.base.*;
+import ru.nsu.logic.lang.base.grammar.*;
 public class LStatement {}
 PARSER_END(LStatement)
 
@@ -99,16 +100,11 @@ String ArgumentDeclaration() # ArgumentDeclaration :
 
 /* ---------------STATEMENT -------------------------*/
 
-IntegerValue IntValue() #IntegerValue :
+NumberValue NumberVal() #NumberValue :
 {Token t;}
 {
-  t=<IntVal> {long v = Long.valueOf(t.image); jjtThis.setValue(v); return jjtThis;}
-}
-
-FloatValue FloatValue() #FloatValue :
-{Token t;}
-{
-  t=<FloatVal> {double v = Double.valueOf(t.image); jjtThis.setValue(v); return jjtThis;}
+  t=<IntVal>   {long lv = Long.valueOf(t.image);     jjtThis.setNumber(lv); return jjtThis;} |
+  t=<FloatVal> {double dv = Double.valueOf(t.image); jjtThis.setNumber(dv); return jjtThis;}
 }
 
 MemberStatement MemberStatement() # MemberStatement :
@@ -147,8 +143,7 @@ IStatement SingleStatement() :
     LOOKAHEAD(2) retVal = FunctionCallStatement() |
     retVal=MemberStatement() |
     retVal=VariableStatement() |
-    retVal=IntValue() |
-    retVal=FloatValue()
+    retVal=NumberVal()
   )
   {return retVal;}
 }

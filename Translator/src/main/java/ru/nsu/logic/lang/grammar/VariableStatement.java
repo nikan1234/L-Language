@@ -2,7 +2,9 @@ package ru.nsu.logic.lang.grammar;
 
 import lombok.Getter;
 import lombok.Setter;
-import ru.nsu.logic.lang.base.IStatement;
+import ru.nsu.logic.lang.base.execution.ExecutionException;
+import ru.nsu.logic.lang.base.execution.IVirtualMachine;
+import ru.nsu.logic.lang.base.grammar.IStatement;
 
 public class VariableStatement extends SimpleNode implements IStatement {
     @Getter
@@ -15,6 +17,13 @@ public class VariableStatement extends SimpleNode implements IStatement {
 
     public VariableStatement(LStatement p, int i) {
         super(p, i);
+    }
+
+    @Override
+    public ExecutionResult execute(IVirtualMachine machine) throws ExecutionException {
+        return new ExecutionResult(
+                machine.getPipeline().getCurrentEntry().getInitializedVariable(name),
+                true);
     }
 
     @Override

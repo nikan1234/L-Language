@@ -1,6 +1,8 @@
 package ru.nsu.logic.lang.compilator;
 
-import ru.nsu.logic.lang.base.IStatement;
+import ru.nsu.logic.lang.base.compilation.ICompiledClass;
+import ru.nsu.logic.lang.base.compilation.ICompiledFunction;
+import ru.nsu.logic.lang.base.grammar.IStatement;
 import ru.nsu.logic.lang.grammar.*;
 import ru.nsu.logic.lang.utils.FilteredVisitor;
 
@@ -9,8 +11,8 @@ import java.util.List;
 public class Compiler {
 
     public CompiledProgram compile(final LLangProgram program) {
-        final CompilationRegistry<CompiledClass> compiledClasses = new CompilationRegistry<>();
-        final CompilationRegistry<CompiledCallable> compiledFunctions = new CompilationRegistry<>();;
+        final CompilationRegistry<ICompiledClass> compiledClasses = new CompilationRegistry<>();
+        final CompilationRegistry<ICompiledFunction> compiledFunctions = new CompilationRegistry<>();;
 
         final CompiledProgram.CompiledProgramBuilder builder = CompiledProgram.builder();
         for (int i = 0; i < program.jjtGetNumChildren(); ++i) {
@@ -32,8 +34,8 @@ public class Compiler {
                 .build();
     }
 
-    private CompiledCallable compile(final FunctionDeclaration decl) {
-        final CompiledCallable.CompiledCallableBuilder builder = CompiledCallable.builder();
+    private CompiledFunction compile(final FunctionDeclaration decl) {
+        final CompiledFunction.CompiledFunctionBuilder builder = CompiledFunction.builder();
         builder.name(decl.getName());
         builder.accessType(AccessTypeEnum.PUBLIC);
 

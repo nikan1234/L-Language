@@ -2,7 +2,7 @@ package ru.nsu.logic.lang.grammar;
 
 import lombok.Getter;
 import lombok.Setter;
-import ru.nsu.logic.lang.base.IDeclaration;
+import ru.nsu.logic.lang.base.grammar.IDeclaration;
 
 public class ClassMethodDeclaration extends SimpleNode implements IDeclaration {
 

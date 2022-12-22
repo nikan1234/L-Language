@@ -5,26 +5,32 @@ import lombok.Setter;
 import ru.nsu.logic.lang.base.execution.IVirtualMachine;
 import ru.nsu.logic.lang.base.grammar.IStatement;
 
-public class MemberStatement extends SimpleNode implements IStatement {
+public class NumberValue extends SimpleNode implements IStatement {
     @Getter
     @Setter
-    private String name;
+    private Number number;
 
-    public MemberStatement(int i) {
+
+    public NumberValue(int i) {
         super(i);
     }
 
-    public MemberStatement(LStatement p, int i) {
+    public NumberValue(LStatement p, int i) {
         super(p, i);
     }
 
     @Override
     public ExecutionResult execute(IVirtualMachine machine) {
-        return null;
+        return new ExecutionResult(this, true);
     }
 
     @Override
     public boolean executedInPlace() {
         return true;
+    }
+
+    @Override
+    public String toString() {
+        return number.toString();
     }
 }

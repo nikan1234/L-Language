@@ -6,14 +6,23 @@ class Derived extends Base {
   protected c;
 }
 
-function foo(y){
- x := y + 6 + bar(foo(6), v(k()));
- y := 6;
- return 5;
+function bar(c) {
+  l := c + 8;
 }
 
+function foo(y){
+ g := []
+
+ r := y;
+ k := r + 6;
+ bar(k);
+}
+
+foo(5);
+v := foo(10);
+
 a := 5;
-b := (30 * 5) + foo(bar(3, 6), 40 + 7);
+b := (a + 1) * (3 + 1);
 
 
 
