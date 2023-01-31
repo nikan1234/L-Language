@@ -37,8 +37,6 @@ public class AssignmentStatement extends SimpleNode implements IStatement {
         if (target instanceof VariableStatement) {
             VariableStatement variable = (VariableStatement) target;
             machine.getPipeline().getCurrentEntry().initializeVariable(variable.getName(), value);
-
-            System.out.println("Initialized " + variable.getName() + " with " + value);
             return new ExecutionResult(null, true);
         }
         if (target instanceof MemberStatement) {

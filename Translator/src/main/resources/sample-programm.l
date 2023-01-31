@@ -6,25 +6,32 @@ class Derived extends Base {
   protected c;
 }
 
-function bar(c) {
-  l := c + 8;
+function bar(p) {
+  u := p + 1;
+  return u;
 }
 
-function foo(y){
- g := []
 
- r := y;
- k := r + 6;
- bar(k);
+function foo(x){
+  y := x * x;
+  return y + bar(x);
 }
 
-foo(5);
-v := foo(10);
+rr1 := [foo(1), foo(2), foo(3)];
+print(rr1);
+rr1 := cons(200, cons(100, rr1));
+print(rr1);
 
-a := 5;
-b := (a + 1) * (3 + 1);
+v0 := nth(rr1, 0);
+v1 := nth(rr1, 1);
+v2 := nth(rr1, 2);
+v3 := nth(rr1, 3);
+v4 := nth(rr1, 4);
 
+print(v0);
+print(v1);
+print(v2);
+print(v3);
+print(v4);
 
-
-
-
+print(cons([1, 2], [3, 4, 5]));

@@ -38,6 +38,10 @@ TOKEN : {
   |
   < CPAR  : ")" >
   |
+  < OAR: "[">
+  |
+  < CAR: "]">
+  |
   < COMMA: "," >
   |
   < DOT: "." >
@@ -107,6 +111,19 @@ NumberValue NumberVal() #NumberValue :
   t=<FloatVal> {double dv = Double.valueOf(t.image); jjtThis.setNumber(dv); return jjtThis;}
 }
 
+ListValue ListVal() #ListValue :
+{IStatement element; List<IStatement> elements = new ArrayList();}
+{
+    <OAR>
+      (element=rvalueStatement()         {elements.add(element);}
+      (<COMMA> element=rvalueStatement() {elements.add(element);} )*)?
+    <CAR>
+    {
+       jjtThis.setElements(elements);
+       return jjtThis;
+    }
+}
+
 MemberStatement MemberStatement() # MemberStatement :
 {String memberName;}
 {
@@ -143,6 +160,7 @@ IStatement SingleStatement() :
     LOOKAHEAD(2) retVal = FunctionCallStatement() |
     retVal=MemberStatement() |
     retVal=VariableStatement() |
+    retVal=ListVal() |
     retVal=NumberVal()
   )
   {return retVal;}
@@ -177,8 +195,8 @@ AssignmentStatement AssignmentStatement() # AssignmentStatement :
 }
 
 void ReturnStatement() # ReturnStatement :
-{}
-{ <RETURN> rvalueStatement() }
+{IStatement what;}
+{ <RETURN> what=rvalueStatement() {jjtThis.setWhat(what);} }
 
 void AllStatements() :
 {}

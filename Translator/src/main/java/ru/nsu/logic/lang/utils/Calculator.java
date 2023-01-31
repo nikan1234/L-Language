@@ -53,8 +53,7 @@ public class Calculator {
     }
 
     private static void assertNumberTypes(List<IStatement> args){
-        if (!args.stream().allMatch(a -> (a instanceof NumberValue))) {
-            throw new IllegalArgumentException("Calculator called with non numbers arguments");
-        }
+        if (!args.stream().allMatch(a -> (a instanceof NumberValue)))
+            throw new IllegalArgumentException("Expected numeric values");
     }
 }

@@ -5,7 +5,7 @@ import ru.nsu.logic.lang.base.grammar.IStatement;
 
 public class Screen implements IScreen {
     @Override
-    public void put(IStatement statement) {
-
+    public void print(IStatement statement) {
+        System.out.println(statement.toString());
     }
 }

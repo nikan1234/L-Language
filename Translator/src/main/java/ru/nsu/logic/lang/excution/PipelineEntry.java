@@ -6,12 +6,10 @@ import ru.nsu.logic.lang.base.execution.IPipelineEntry;
 import ru.nsu.logic.lang.base.grammar.IStatement;
 
 import java.util.*;
-import java.util.function.Function;
-import java.util.function.UnaryOperator;
 
 public class PipelineEntry implements IPipelineEntry {
     private final Map<String, IStatement> varInitializers;
-    private final List<String> tempVariables;
+    private final Stack<String> tempVariables;
 
     private final List<IStatement> statements;
     private int currentStatementIndex;
@@ -19,7 +17,7 @@ public class PipelineEntry implements IPipelineEntry {
     public PipelineEntry(final Map<String, IStatement> varInitializers,
                          final List<IStatement> statements) {
         this.varInitializers = new HashMap<>(varInitializers);
-        this.tempVariables = new ArrayList<>();
+        this.tempVariables = new Stack<>();
 
         this.statements = new ArrayList<>(statements);
         this.currentStatementIndex = 0;
@@ -31,14 +29,14 @@ public class PipelineEntry implements IPipelineEntry {
     }
 
     @Override
-    public IStatement getInitializedVariable(final String varName)  throws ExecutionException {
+    public IStatement getInitializedVariable(final String varName) throws ExecutionException {
         if (!varInitializers.containsKey(varName))
             throw new ExecutionException("Cannot use not initialized variable " + varName);
         return varInitializers.get(varName);
     }
 
     @Override
-    public String addUniqueTemporaryVariable() {
+    public String pushTempVariable() {
         int minimumSize = 4;
 
         while (true) {
@@ -52,8 +50,8 @@ public class PipelineEntry implements IPipelineEntry {
     }
 
     @Override
-    public void nextStatement() {
-        ++currentStatementIndex;
+    public String popTempVariable() {
+        return tempVariables.pop();
     }
 
     @Override
@@ -61,6 +59,10 @@ public class PipelineEntry implements IPipelineEntry {
         return currentStatementIndex >= statements.size();
     }
 
+    @Override
+    public void nextStatement() {
+        ++currentStatementIndex;
+    }
 
     @Override
     public IStatement getCurrentStatement() {

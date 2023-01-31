@@ -4,10 +4,11 @@ import lombok.Getter;
 import lombok.Setter;
 import ru.nsu.logic.lang.base.compilation.ICompiledFunction;
 import ru.nsu.logic.lang.base.execution.ExecutionException;
+import ru.nsu.logic.lang.base.execution.IPipelineEntry;
 import ru.nsu.logic.lang.base.execution.IVirtualMachine;
 import ru.nsu.logic.lang.base.grammar.IStatement;
+import ru.nsu.logic.lang.builtins.common.BuiltinsRegistry;
 import ru.nsu.logic.lang.excution.PipelineEntry;
-import ru.nsu.logic.lang.utils.ListUtils;
 
 import java.util.*;
 
@@ -36,7 +37,7 @@ public class FunctionCallStatement extends SimpleNode implements IStatement {
     }
 
     @Override
-    public ExecutionResult execute(IVirtualMachine machine) throws ExecutionException {
+    public ExecutionResult execute(final IVirtualMachine machine) throws ExecutionException {
         if (!isBuiltInFunction() && callParameters.stream().allMatch(IStatement::executedInPlace))
             return placeToPipeline(machine);
 
@@ -49,8 +50,10 @@ public class FunctionCallStatement extends SimpleNode implements IStatement {
             if (shouldBreak)
                 return new ExecutionResult(new FunctionCallStatement(functionName, executed), false);
         }
-        /* Build-it, all args are calculated */
-        return new ExecutionResult(null, false);
+        /* Build-in, all args are calculated */
+        final Optional<BuiltinsRegistry.BuiltinBuilder<?>> optional = BuiltinsRegistry.INSTANCE.lookup(functionName);
+        assert(optional.isPresent());
+        return new ExecutionResult(optional.get().build(machine).evaluate(executed), true);
     }
 
     @Override
@@ -61,13 +64,10 @@ public class FunctionCallStatement extends SimpleNode implements IStatement {
     }
 
     private boolean isBuiltInFunction() {
-        return false;
+        return BuiltinsRegistry.INSTANCE.lookup(functionName).isPresent();
     }
 
-    private ExecutionResult placeToPipeline(IVirtualMachine machine) throws ExecutionException {
-        final VariableStatement stmt = new VariableStatement(GENERATED_STATEMENT_ID);
-        stmt.setName(machine.getPipeline().getCurrentEntry().addUniqueTemporaryVariable());
-
+    private ExecutionResult placeToPipeline(final IVirtualMachine machine) throws ExecutionException {
         final Optional<ICompiledFunction> function = machine.getCompiledFunctions().lookup(functionName);
         if (!function.isPresent())
             throw new ExecutionException("Function not found");
@@ -77,14 +77,18 @@ public class FunctionCallStatement extends SimpleNode implements IStatement {
             throw new ExecutionException(
                     "Wrong number of parameters in " + functionName + ". Expected: " + argNames.size());
 
+        // Replace function call with variable statement and add new entry to pipeline
+        final IPipelineEntry entry = new PipelineEntry(executeArguments(machine, argNames), function.get().getBody());
+        return new ExecutionResult(machine.onPushEntry(entry), true);
+    }
+
+    private Map<String, IStatement> executeArguments(final IVirtualMachine machine,
+                                                     final List<String> argNames) throws ExecutionException {
         final Map<String, IStatement> initializers = new HashMap<>();
         final Iterator<String> argumentIter = argNames.iterator();
         final Iterator<IStatement> stmtIter = callParameters.iterator();
         while (argumentIter.hasNext() && stmtIter.hasNext())
             initializers.put(argumentIter.next(), stmtIter.next().execute(machine).getStatement());
-
-        PipelineEntry newEntry = new PipelineEntry(initializers, function.get().getBody());
-        machine.getPipeline().pushEntry(newEntry);
-        return new ExecutionResult(stmt, true);
+        return initializers;
     }
 }

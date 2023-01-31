@@ -5,11 +5,11 @@ import net.sourceforge.argparse4j.inf.ArgumentParser;
 import net.sourceforge.argparse4j.inf.ArgumentParserException;
 import net.sourceforge.argparse4j.inf.Namespace;
 import ru.nsu.logic.lang.base.execution.ExecutionException;
-import ru.nsu.logic.lang.compilator.CompilationException;
-import ru.nsu.logic.lang.compilator.CompiledProgram;
 import ru.nsu.logic.lang.compilator.Compiler;
 import ru.nsu.logic.lang.excution.VirtualMachine;
-import ru.nsu.logic.lang.grammar.*;
+import ru.nsu.logic.lang.grammar.LLangProgram;
+import ru.nsu.logic.lang.grammar.LStatement;
+import ru.nsu.logic.lang.grammar.ParseException;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -26,10 +26,8 @@ public class Main {
         try {
             final Namespace ns = parser.parseArgs(args);
             try (InputStream in = new FileInputStream(ns.getString("input_file"))) {
-                LStatement statement = new LStatement(in);
-                LLangProgram program = statement.LLangProgram();
-                CompiledProgram compiled = new Compiler().compile(program);
-                VirtualMachine machine = VirtualMachine.create(compiled);
+                final LLangProgram program = new LStatement(in).LLangProgram();
+                final VirtualMachine machine = VirtualMachine.create(new Compiler().compile(program));
                 machine.run();
 
             } catch (FileNotFoundException | ParseException | ExecutionException e) {

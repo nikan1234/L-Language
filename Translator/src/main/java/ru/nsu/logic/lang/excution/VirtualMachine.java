@@ -6,8 +6,11 @@ import ru.nsu.logic.lang.base.compilation.ICompiledFunction;
 import ru.nsu.logic.lang.base.execution.*;
 import ru.nsu.logic.lang.base.grammar.IStatement;
 import ru.nsu.logic.lang.compilator.CompiledProgram;
+import ru.nsu.logic.lang.grammar.VariableStatement;
 
 import java.util.HashMap;
+
+import static ru.nsu.logic.lang.base.grammar.IStatement.GENERATED_STATEMENT_ID;
 
 
 public class VirtualMachine implements IVirtualMachine {
@@ -49,6 +52,25 @@ public class VirtualMachine implements IVirtualMachine {
     @Override
     public IPipeline getPipeline() {
         return pipeline;
+    }
+
+    @Override
+    public IStatement onPushEntry(final IPipelineEntry entry) {
+        final String uniqueName = pipeline.getCurrentEntry().pushTempVariable();
+        pipeline.pushEntry(entry);
+
+        final VariableStatement stmt = new VariableStatement(GENERATED_STATEMENT_ID);
+        stmt.setName(uniqueName);
+        return stmt;
+    }
+
+    @Override
+    public void onEntryCompleted(final IStatement result) {
+        /// Remove entry from execution stack
+        pipeline.popEntry();
+        pipeline.getCurrentEntry().initializeVariable(
+                pipeline.getCurrentEntry().popTempVariable(),
+                result);
     }
 
     @Override

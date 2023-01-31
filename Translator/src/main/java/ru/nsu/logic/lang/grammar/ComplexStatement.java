@@ -19,11 +19,11 @@ public class ComplexStatement extends SimpleNode implements IStatement {
     @Getter
     private List<String> operators;
 
-    public ComplexStatement(int i) {
+    public ComplexStatement(final int i) {
         super(i);
     }
 
-    public ComplexStatement(LStatement p, int i) {
+    public ComplexStatement(final LStatement p, int i) {
         super(p, i);
     }
 
@@ -35,7 +35,7 @@ public class ComplexStatement extends SimpleNode implements IStatement {
     }
 
     @Override
-    public ExecutionResult execute(IVirtualMachine machine) throws ExecutionException {
+    public ExecutionResult execute(final IVirtualMachine machine) throws ExecutionException {
         if (operators.isEmpty())
             throw new ExecutionException("No operators found");
 
