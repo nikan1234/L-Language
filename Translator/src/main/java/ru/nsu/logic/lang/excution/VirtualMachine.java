@@ -10,8 +10,6 @@ import ru.nsu.logic.lang.grammar.VariableStatement;
 
 import java.util.HashMap;
 
-import static ru.nsu.logic.lang.grammar.common.IStatement.GENERATED_STATEMENT_ID;
-
 
 public class VirtualMachine implements IVirtualMachine {
     private final ICompilationRegistry<ICompiledClass> compiledClasses;
@@ -58,10 +56,7 @@ public class VirtualMachine implements IVirtualMachine {
     public IStatement onPushEntry(final IPipelineEntry entry) {
         final String uniqueName = pipeline.getCurrentEntry().pushTempVariable();
         pipeline.pushEntry(entry);
-
-        final VariableStatement stmt = new VariableStatement(GENERATED_STATEMENT_ID);
-        stmt.setName(uniqueName);
-        return stmt;
+        return new VariableStatement(uniqueName);
     }
 
     @Override
@@ -81,8 +76,8 @@ public class VirtualMachine implements IVirtualMachine {
                 pipeline.popEntry();
                 continue;
             }
-            final IStatement.ExecutionResult result = currentEntry.getCurrentStatement().execute(this);
-            currentEntry.setCurrentStatement(result.getStatement());
+            final IStatement.ExecutionResult<IStatement> result = currentEntry.getCurrentStatement().execute(this);
+            currentEntry.setCurrentStatement(result.getValue());
             if (result.isCompleted())
                 currentEntry.nextStatement();
         }

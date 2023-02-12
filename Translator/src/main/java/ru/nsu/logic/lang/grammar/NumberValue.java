@@ -11,6 +11,8 @@ public class NumberValue extends SimpleNode implements IStatement {
     @Setter
     private Number number;
 
+    public NumberValue() {}
+
     public NumberValue(int i) {
         super(i);
     }
@@ -26,14 +28,10 @@ public class NumberValue extends SimpleNode implements IStatement {
     }
 
     @Override
-    public ExecutionResult execute(IVirtualMachine machine) {
-        return new ExecutionResult(this, true);
+    public ExecutionResult<IStatement> execute(IVirtualMachine machine) {
+        return new ExecutionResult<>(this, true);
     }
 
-    @Override
-    public boolean executedInPlace() {
-        return true;
-    }
 
     @Override
     public String toString() {

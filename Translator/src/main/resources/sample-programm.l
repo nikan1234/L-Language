@@ -17,7 +17,12 @@ function foo(x){
   return y + bar(x);
 }
 
-rr1 := [foo(1), foo(2), foo(3)];
+function sqr(x) {
+  print(x);
+  return x * x;
+}
+
+rr1 := [foo(1) + 1, foo(2), foo(3)];
 print(rr1);
 rr1 := cons(200, cons(100, rr1));
 print(rr1);
@@ -30,6 +35,7 @@ v4 := nth(rr1, 4);
 
 print(nil);
 
+print(len(rr1));
 print(v0);
 print(v1);
 print(v2);
@@ -37,4 +43,12 @@ print(v3);
 print(v4);
 
 print(cons([1, 2], [3, 4, 5]));
+
+delta := 5;
+gamma := cond(delta > 0 -> sqr(100) + 100,
+              delta > 2 -> sqr(200),
+              sqr(6));
+print(gamma);
+
+
 

@@ -18,25 +18,25 @@ import java.io.InputStream;
 
 public class Main {
     public static void main(String[] args) {
-        ArgumentParser parser = ArgumentParsers
+        final ArgumentParser parser = ArgumentParsers
                 .newFor("L* Program translator")
                 .build().defaultHelp(true);
         parser.addArgument("-i", "--input-file").required(true);
 
         try {
             final Namespace ns = parser.parseArgs(args);
-            try (InputStream in = new FileInputStream(ns.getString("input_file"))) {
+            try (final InputStream in = new FileInputStream(ns.getString("input_file"))) {
                 final LLangProgram program = new LStatement(in).LLangProgram();
                 final VirtualMachine machine = VirtualMachine.create(new Compiler().compile(program));
                 machine.run();
 
-            } catch (FileNotFoundException | ParseException | ExecutionException e) {
+            } catch (final FileNotFoundException | ParseException | ExecutionException e) {
                 System.err.println(e.getMessage());
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 e.printStackTrace();
             }
         }
-        catch (ArgumentParserException e) {
+        catch (final ArgumentParserException e) {
             parser.handleError(e);
             System.exit(1);
         }

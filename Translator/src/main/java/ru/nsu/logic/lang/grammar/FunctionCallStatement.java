@@ -33,40 +33,36 @@ public class FunctionCallStatement extends SimpleNode implements IStatement {
     }
 
     @Override
-    public ExecutionResult execute(final IVirtualMachine machine) throws ExecutionException {
-        if (!isBuiltInFunction() && callParameters.stream().allMatch(IStatement::executedInPlace))
-            return placeToPipeline(machine);
+    public ExecutionResult<IStatement> execute(final IVirtualMachine machine) throws ExecutionException {
 
+        /// Evaluate arguments
         final List<IStatement> executed = new ArrayList<>(callParameters);
         for (int i = 0; i < callParameters.size(); ++i) {
-            final IStatement parameter = callParameters.get(i);
-            final boolean shouldBreak = !parameter.executedInPlace();
+            final IStatement param = callParameters.get(i);
+            final ExecutionResult<IStatement> executionResult = param.execute(machine);
 
-            executed.set(i, parameter.execute(machine).getStatement());
-            if (shouldBreak)
-                return new ExecutionResult(new FunctionCallStatement(functionName, executed), false);
+            executed.set(i, executionResult.getValue());
+            if (!executionResult.isCompleted())
+                return new ExecutionResult<>(new FunctionCallStatement(functionName, executed), false);
         }
-        /* Build-in, all args are calculated */
-        final Optional<BuiltinsRegistry.BuiltinBuilder<?>> optional = BuiltinsRegistry.INSTANCE.lookup(functionName);
-        assert(optional.isPresent());
-        return new ExecutionResult(optional.get().build(machine).evaluate(executed), true);
-    }
 
-    @Override
-    public boolean executedInPlace() {
-        if (!isBuiltInFunction())
-            return false;
-        return callParameters.stream().allMatch(IStatement::executedInPlace);
+        if (isBuiltInFunction()) {
+            /// Build-in, all args are calculated /
+            final Optional<BuiltinsRegistry.BuiltinBuilder<?>> optional = BuiltinsRegistry.INSTANCE.lookup(functionName);
+            assert(optional.isPresent());
+            return new ExecutionResult<>(optional.get().build(machine).evaluate(executed), true);
+        }
+        return placeToPipeline(machine);
     }
 
     private boolean isBuiltInFunction() {
         return BuiltinsRegistry.INSTANCE.lookup(functionName).isPresent();
     }
 
-    private ExecutionResult placeToPipeline(final IVirtualMachine machine) throws ExecutionException {
+    private ExecutionResult<IStatement> placeToPipeline(final IVirtualMachine machine) throws ExecutionException {
         final Optional<ICompiledFunction> function = machine.getCompiledFunctions().lookup(functionName);
         if (!function.isPresent())
-            throw new ExecutionException("Function not found");
+            throw new ExecutionException("Function not found: " + functionName);
 
         final List<String> argNames = function.get().getArguments();
         if (argNames.size() != callParameters.size())
@@ -75,7 +71,7 @@ public class FunctionCallStatement extends SimpleNode implements IStatement {
 
         // Replace function call with variable statement and add new entry to pipeline
         final IPipelineEntry entry = new PipelineEntry(executeArguments(machine, argNames), function.get().getBody());
-        return new ExecutionResult(machine.onPushEntry(entry), true);
+        return new ExecutionResult<>(machine.onPushEntry(entry), false);
     }
 
     private Map<String, IStatement> executeArguments(final IVirtualMachine machine,
@@ -84,7 +80,7 @@ public class FunctionCallStatement extends SimpleNode implements IStatement {
         final Iterator<String> argumentIter = argNames.iterator();
         final Iterator<IStatement> stmtIter = callParameters.iterator();
         while (argumentIter.hasNext() && stmtIter.hasNext())
-            initializers.put(argumentIter.next(), stmtIter.next().execute(machine).getStatement());
+            initializers.put(argumentIter.next(), stmtIter.next().execute(machine).getValue());
         return initializers;
     }
 }

@@ -20,17 +20,12 @@ public class ReturnStatement extends SimpleNode implements IStatement {
     }
 
     @Override
-    public ExecutionResult execute(final IVirtualMachine machine) throws ExecutionException {
-        final IStatement result = what.execute(machine).getStatement();
-        if (what.executedInPlace()) {
-            machine.onEntryCompleted(result);
-            return new ExecutionResult(null, true);
+    public ExecutionResult<IStatement> execute(final IVirtualMachine machine) throws ExecutionException {
+        final ExecutionResult<IStatement> whatExecuted = what.execute(machine);
+        if (whatExecuted.isCompleted()) {
+            machine.onEntryCompleted(whatExecuted.getValue());
+            return new ExecutionResult<>(null, true);
         }
-        return new ExecutionResult(new ReturnStatement(result), false);
-    }
-
-    @Override
-    public boolean executedInPlace() {
-        return what.executedInPlace();
+        return new ExecutionResult<>(new ReturnStatement(whatExecuted.getValue()), false);
     }
 }

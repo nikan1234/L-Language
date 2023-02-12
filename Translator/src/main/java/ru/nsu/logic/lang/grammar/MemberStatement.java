@@ -15,12 +15,8 @@ public class MemberStatement extends SimpleNode implements IStatement {
     }
 
     @Override
-    public ExecutionResult execute(IVirtualMachine machine) {
+    public ExecutionResult<IStatement> execute(IVirtualMachine machine) {
         return null;
     }
 
-    @Override
-    public boolean executedInPlace() {
-        return true;
-    }
 }

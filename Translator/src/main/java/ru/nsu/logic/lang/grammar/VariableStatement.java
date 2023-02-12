@@ -15,15 +15,14 @@ public class VariableStatement extends SimpleNode implements IStatement {
         super(i);
     }
 
-    @Override
-    public ExecutionResult execute(IVirtualMachine machine) throws ExecutionException {
-        return new ExecutionResult(
-                machine.getPipeline().getCurrentEntry().getInitializedVariable(name),
-                true);
+    public VariableStatement(final String name) {
+        this.name = name;
     }
 
     @Override
-    public boolean executedInPlace() {
-        return true;
+    public ExecutionResult<IStatement> execute(IVirtualMachine machine) throws ExecutionException {
+        return new ExecutionResult<>(
+                machine.getPipeline().getCurrentEntry().getInitializedVariable(name),
+                true);
     }
 }

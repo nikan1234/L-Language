@@ -23,26 +23,21 @@ public class ListValue extends SimpleNode implements IStatement {
     }
 
     @Override
-    public ExecutionResult execute(final IVirtualMachine machine) throws ExecutionException {
+    public ExecutionResult<IStatement> execute(final IVirtualMachine machine) throws ExecutionException {
         final List<IStatement> executed = new ArrayList<>(elements);
 
         boolean completed = true;
         for (int i = 0; i < elements.size(); ++i) {
             final IStatement element = elements.get(i);
-            final boolean shouldBreak = !element.executedInPlace();
+            final ExecutionResult<IStatement> elementExecuted = element.execute(machine);
+            executed.set(i, elementExecuted.getValue());
 
-            executed.set(i, element.execute(machine).getStatement());
-            if (shouldBreak) {
+            if (!elementExecuted.isCompleted()) {
                 completed = false;
                 break;
             }
         }
-        return new ExecutionResult(new ListValue(executed), completed);
-    }
-
-    @Override
-    public boolean executedInPlace() {
-        return elements.stream().allMatch(IStatement::executedInPlace);
+        return new ExecutionResult<>(new ListValue(executed), completed);
     }
 
     @Override

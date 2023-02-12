@@ -11,13 +11,8 @@ public class NullValue extends SimpleNode implements IStatement {
     }
 
     @Override
-    public ExecutionResult execute(IVirtualMachine machine) throws ExecutionException {
-        return new ExecutionResult(this, true);
-    }
-
-    @Override
-    public boolean executedInPlace() {
-        return true;
+    public ExecutionResult<IStatement> execute(IVirtualMachine machine) throws ExecutionException {
+        return new ExecutionResult<>(this, true);
     }
 
     @Override

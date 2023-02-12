@@ -22,27 +22,21 @@ public class AssignmentStatement extends SimpleNode implements IStatement {
     }
 
     @Override
-    public ExecutionResult execute(final IVirtualMachine machine) throws ExecutionException {
-        if (!what.executedInPlace())
-            return new ExecutionResult(
-                    new AssignmentStatement(target, what.execute(machine).getStatement()),
-                    false);
+    public ExecutionResult<IStatement> execute(final IVirtualMachine machine) throws ExecutionException {
+        final ExecutionResult<IStatement> whatExecuted =  what.execute(machine);
+        final IStatement value = whatExecuted.getValue();
+        if (!whatExecuted.isCompleted())
+            return new ExecutionResult<>(new AssignmentStatement(target, value), false);
 
-        final IStatement value =  what.execute(machine).getStatement();
         if (target instanceof VariableStatement) {
             final VariableStatement variable = (VariableStatement) target;
             machine.getPipeline().getCurrentEntry().initializeVariable(variable.getName(), value);
-            return new ExecutionResult(null, true);
+            return new ExecutionResult<>(null, true);
         }
         if (target instanceof MemberStatement) {
             MemberStatement member = (MemberStatement) target;
-            return new ExecutionResult(null, true);
+            return new ExecutionResult<>(null, true);
         }
         throw new ExecutionException("Cannot assign to " + target);
-    }
-
-    @Override
-    public boolean executedInPlace() {
-        return true;
     }
 }
