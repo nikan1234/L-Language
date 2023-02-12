@@ -1,6 +1,6 @@
-package ru.nsu.logic.lang.base.compilation;
+package ru.nsu.logic.lang.compilation.common;
 
-import ru.nsu.logic.lang.base.grammar.IStatement;
+import ru.nsu.logic.lang.grammar.common.IStatement;
 
 import java.util.List;
 

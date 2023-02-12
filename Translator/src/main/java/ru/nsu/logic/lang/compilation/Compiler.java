@@ -1,9 +1,10 @@
-package ru.nsu.logic.lang.compilator;
+package ru.nsu.logic.lang.compilation;
 
-import ru.nsu.logic.lang.base.compilation.ICompiledClass;
-import ru.nsu.logic.lang.base.compilation.ICompiledFunction;
-import ru.nsu.logic.lang.base.grammar.IStatement;
+import ru.nsu.logic.lang.compilation.common.ICompiledClass;
+import ru.nsu.logic.lang.compilation.common.ICompiledFunction;
+import ru.nsu.logic.lang.grammar.common.IStatement;
 import ru.nsu.logic.lang.grammar.*;
+import ru.nsu.logic.lang.grammar.common.AccessTypeEnum;
 import ru.nsu.logic.lang.utils.FilteredVisitor;
 
 import java.util.List;

@@ -1,7 +1,7 @@
 package ru.nsu.logic.lang.excution;
 
-import ru.nsu.logic.lang.base.execution.IPipeline;
-import ru.nsu.logic.lang.base.execution.IPipelineEntry;
+import ru.nsu.logic.lang.excution.common.IPipeline;
+import ru.nsu.logic.lang.excution.common.IPipelineEntry;
 
 import java.util.Stack;
 

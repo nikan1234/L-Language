@@ -1,7 +1,7 @@
 package ru.nsu.logic.lang.builtins.list;
 
-import ru.nsu.logic.lang.base.execution.ExecutionException;
-import ru.nsu.logic.lang.base.grammar.IStatement;
+import ru.nsu.logic.lang.excution.common.ExecutionException;
+import ru.nsu.logic.lang.grammar.common.IStatement;
 import ru.nsu.logic.lang.builtins.common.Builtin;
 import ru.nsu.logic.lang.builtins.common.BuiltinClass;
 import ru.nsu.logic.lang.grammar.ListValue;
@@ -16,6 +16,6 @@ public class ListCons extends Builtin {
 
         final List<IStatement> tail = asType(arguments.get(1), ListValue.class).getElements();
         tail.add(0, arguments.get(0));
-        return new ListValue(tail, IStatement.GENERATED_STATEMENT_ID);
+        return new ListValue(tail);
     }
 }

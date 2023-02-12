@@ -1,4 +1,4 @@
-package ru.nsu.logic.lang.base.compilation;
+package ru.nsu.logic.lang.compilation.common;
 
 
 import java.util.Optional;

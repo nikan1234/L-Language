@@ -1,7 +1,7 @@
 package ru.nsu.logic.lang.builtins.list;
 
-import ru.nsu.logic.lang.base.execution.ExecutionException;
-import ru.nsu.logic.lang.base.grammar.IStatement;
+import ru.nsu.logic.lang.excution.common.ExecutionException;
+import ru.nsu.logic.lang.grammar.common.IStatement;
 import ru.nsu.logic.lang.builtins.common.Builtin;
 import ru.nsu.logic.lang.builtins.common.BuiltinClass;
 import ru.nsu.logic.lang.grammar.ListValue;

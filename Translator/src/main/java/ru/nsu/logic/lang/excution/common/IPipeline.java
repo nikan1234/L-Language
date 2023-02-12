@@ -1,4 +1,4 @@
-package ru.nsu.logic.lang.base.execution;
+package ru.nsu.logic.lang.excution.common;
 
 public interface IPipeline {
     IPipelineEntry getCurrentEntry();

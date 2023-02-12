@@ -2,11 +2,11 @@ package ru.nsu.logic.lang.grammar;
 
 import lombok.Getter;
 import lombok.Setter;
-import ru.nsu.logic.lang.base.compilation.ICompiledFunction;
-import ru.nsu.logic.lang.base.execution.ExecutionException;
-import ru.nsu.logic.lang.base.execution.IPipelineEntry;
-import ru.nsu.logic.lang.base.execution.IVirtualMachine;
-import ru.nsu.logic.lang.base.grammar.IStatement;
+import ru.nsu.logic.lang.compilation.common.ICompiledFunction;
+import ru.nsu.logic.lang.excution.common.ExecutionException;
+import ru.nsu.logic.lang.excution.common.IPipelineEntry;
+import ru.nsu.logic.lang.excution.common.IVirtualMachine;
+import ru.nsu.logic.lang.grammar.common.IStatement;
 import ru.nsu.logic.lang.builtins.common.BuiltinsRegistry;
 import ru.nsu.logic.lang.excution.PipelineEntry;
 
@@ -25,13 +25,9 @@ public class FunctionCallStatement extends SimpleNode implements IStatement {
         super(i);
     }
 
-    public FunctionCallStatement(LStatement p, int i) {
-        super(p, i);
-    }
 
     private FunctionCallStatement(final String functionName,
                                   final List<IStatement> callParameters) {
-        super(GENERATED_STATEMENT_ID);
         this.functionName = functionName;
         this.callParameters = callParameters;
     }

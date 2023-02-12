@@ -1,9 +1,9 @@
-package ru.nsu.logic.lang.base.execution;
+package ru.nsu.logic.lang.excution.common;
 
-import ru.nsu.logic.lang.base.compilation.ICompilationRegistry;
-import ru.nsu.logic.lang.base.compilation.ICompiledClass;
-import ru.nsu.logic.lang.base.compilation.ICompiledFunction;
-import ru.nsu.logic.lang.base.grammar.IStatement;
+import ru.nsu.logic.lang.compilation.common.ICompilationRegistry;
+import ru.nsu.logic.lang.compilation.common.ICompiledClass;
+import ru.nsu.logic.lang.compilation.common.ICompiledFunction;
+import ru.nsu.logic.lang.grammar.common.IStatement;
 
 public interface IVirtualMachine {
     ICompilationRegistry<ICompiledFunction> getCompiledFunctions();

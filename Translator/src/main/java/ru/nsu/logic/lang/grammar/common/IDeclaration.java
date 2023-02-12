@@ -1,3 +1,3 @@
-package ru.nsu.logic.lang.base.grammar;
+package ru.nsu.logic.lang.grammar.common;
 
 public interface IDeclaration {}

@@ -1,4 +1,4 @@
-package ru.nsu.logic.lang.compilator;
+package ru.nsu.logic.lang.compilation.common;
 
 public class CompilationException extends Exception {
 

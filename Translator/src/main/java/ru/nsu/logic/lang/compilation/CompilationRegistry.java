@@ -1,6 +1,6 @@
-package ru.nsu.logic.lang.compilator;
+package ru.nsu.logic.lang.compilation;
 
-import ru.nsu.logic.lang.base.compilation.ICompilationRegistry;
+import ru.nsu.logic.lang.compilation.common.ICompilationRegistry;
 
 import java.util.LinkedList;
 import java.util.List;

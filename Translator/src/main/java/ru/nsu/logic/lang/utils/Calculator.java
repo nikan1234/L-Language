@@ -2,7 +2,7 @@ package ru.nsu.logic.lang.utils;
 
 import net.objecthunter.exp4j.Expression;
 import net.objecthunter.exp4j.ExpressionBuilder;
-import ru.nsu.logic.lang.base.grammar.IStatement;
+import ru.nsu.logic.lang.grammar.common.IStatement;
 import ru.nsu.logic.lang.grammar.NumberValue;
 
 import java.util.HashMap;

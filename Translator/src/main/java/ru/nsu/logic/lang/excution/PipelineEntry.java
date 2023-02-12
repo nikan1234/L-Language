@@ -1,9 +1,9 @@
 package ru.nsu.logic.lang.excution;
 
 import org.apache.commons.lang3.RandomStringUtils;
-import ru.nsu.logic.lang.base.execution.ExecutionException;
-import ru.nsu.logic.lang.base.execution.IPipelineEntry;
-import ru.nsu.logic.lang.base.grammar.IStatement;
+import ru.nsu.logic.lang.excution.common.ExecutionException;
+import ru.nsu.logic.lang.excution.common.IPipelineEntry;
+import ru.nsu.logic.lang.grammar.common.IStatement;
 
 import java.util.*;
 

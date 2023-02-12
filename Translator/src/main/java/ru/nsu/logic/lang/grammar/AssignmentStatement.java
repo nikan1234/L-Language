@@ -1,9 +1,9 @@
 package ru.nsu.logic.lang.grammar;
 
 import lombok.Setter;
-import ru.nsu.logic.lang.base.execution.ExecutionException;
-import ru.nsu.logic.lang.base.execution.IVirtualMachine;
-import ru.nsu.logic.lang.base.grammar.IStatement;
+import ru.nsu.logic.lang.excution.common.ExecutionException;
+import ru.nsu.logic.lang.excution.common.IVirtualMachine;
+import ru.nsu.logic.lang.grammar.common.IStatement;
 
 public class AssignmentStatement extends SimpleNode implements IStatement {
     @Setter
@@ -16,18 +16,13 @@ public class AssignmentStatement extends SimpleNode implements IStatement {
         super(i);
     }
 
-    public AssignmentStatement(LStatement p, int i) {
-        super(p, i);
-    }
-
     private AssignmentStatement(final IStatement target, final IStatement what) {
-        super(GENERATED_STATEMENT_ID);
         this.target = target;
         this.what = what;
     }
 
     @Override
-    public ExecutionResult execute(IVirtualMachine machine) throws ExecutionException {
+    public ExecutionResult execute(final IVirtualMachine machine) throws ExecutionException {
         if (!what.executedInPlace())
             return new ExecutionResult(
                     new AssignmentStatement(target, what.execute(machine).getStatement()),
@@ -35,7 +30,7 @@ public class AssignmentStatement extends SimpleNode implements IStatement {
 
         final IStatement value =  what.execute(machine).getStatement();
         if (target instanceof VariableStatement) {
-            VariableStatement variable = (VariableStatement) target;
+            final VariableStatement variable = (VariableStatement) target;
             machine.getPipeline().getCurrentEntry().initializeVariable(variable.getName(), value);
             return new ExecutionResult(null, true);
         }

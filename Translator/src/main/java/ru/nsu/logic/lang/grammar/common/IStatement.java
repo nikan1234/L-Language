@@ -1,9 +1,9 @@
-package ru.nsu.logic.lang.base.grammar;
+package ru.nsu.logic.lang.grammar.common;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import ru.nsu.logic.lang.base.execution.ExecutionException;
-import ru.nsu.logic.lang.base.execution.IVirtualMachine;
+import ru.nsu.logic.lang.excution.common.ExecutionException;
+import ru.nsu.logic.lang.excution.common.IVirtualMachine;
 
 public interface IStatement {
     int GENERATED_STATEMENT_ID = -1;

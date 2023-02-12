@@ -2,7 +2,8 @@ package ru.nsu.logic.lang.grammar;
 
 import lombok.Getter;
 import lombok.Setter;
-import ru.nsu.logic.lang.base.grammar.IDeclaration;
+import ru.nsu.logic.lang.grammar.common.IDeclaration;
+import ru.nsu.logic.lang.grammar.common.AccessTypeEnum;
 
 public class ClassMethodDeclaration extends SimpleNode implements IDeclaration {
 
@@ -16,9 +17,5 @@ public class ClassMethodDeclaration extends SimpleNode implements IDeclaration {
 
     public ClassMethodDeclaration(int i) {
         super(i);
-    }
-
-    public ClassMethodDeclaration(LStatement p, int i) {
-        super(p, i);
     }
 }

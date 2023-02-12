@@ -9,8 +9,7 @@ PARSER_BEGIN(LStatement)
 package ru.nsu.logic.lang.grammar;
 
 import java.util.*;
-import ru.nsu.logic.lang.base.*;
-import ru.nsu.logic.lang.base.grammar.*;
+import ru.nsu.logic.lang.grammar.common.*;
 public class LStatement {}
 PARSER_END(LStatement)
 
@@ -49,6 +48,8 @@ TOKEN : {
   < ASSIGN: ":=">
   |
   < THIS: "this">
+  |
+  < NULL: "nil">
   |
   < RETURN: "return">
   |
@@ -111,6 +112,12 @@ NumberValue NumberVal() #NumberValue :
   t=<FloatVal> {double dv = Double.valueOf(t.image); jjtThis.setNumber(dv); return jjtThis;}
 }
 
+NullValue NullVal() #NullValue :
+{}
+{
+  <NULL> {return jjtThis;}
+}
+
 ListValue ListVal() #ListValue :
 {IStatement element; List<IStatement> elements = new ArrayList();}
 {
@@ -161,7 +168,8 @@ IStatement SingleStatement() :
     retVal=MemberStatement() |
     retVal=VariableStatement() |
     retVal=ListVal() |
-    retVal=NumberVal()
+    retVal=NumberVal() |
+    retVal=NullVal()
   )
   {return retVal;}
 }

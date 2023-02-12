@@ -1,11 +1,11 @@
-package ru.nsu.logic.lang.compilator;
+package ru.nsu.logic.lang.compilation;
 
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Singular;
-import ru.nsu.logic.lang.base.compilation.ICompiledFunction;
-import ru.nsu.logic.lang.base.grammar.IStatement;
-import ru.nsu.logic.lang.grammar.AccessTypeEnum;
+import ru.nsu.logic.lang.compilation.common.ICompiledFunction;
+import ru.nsu.logic.lang.grammar.common.IStatement;
+import ru.nsu.logic.lang.grammar.common.AccessTypeEnum;
 
 import java.util.List;
 

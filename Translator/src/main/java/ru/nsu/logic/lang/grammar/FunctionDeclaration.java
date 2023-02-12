@@ -1,8 +1,8 @@
 package ru.nsu.logic.lang.grammar;
 
-import lombok.Setter;
 import lombok.Getter;
-import ru.nsu.logic.lang.base.grammar.IDeclaration;
+import lombok.Setter;
+import ru.nsu.logic.lang.grammar.common.IDeclaration;
 
 public class FunctionDeclaration extends SimpleNode implements IDeclaration {
     @Getter
@@ -11,9 +11,5 @@ public class FunctionDeclaration extends SimpleNode implements IDeclaration {
 
     public FunctionDeclaration(int i) {
         super(i);
-    }
-
-    public FunctionDeclaration(LStatement p, int i) {
-        super(p, i);
     }
 }

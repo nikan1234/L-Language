@@ -2,9 +2,9 @@ package ru.nsu.logic.lang.grammar;
 
 import lombok.Getter;
 import lombok.Setter;
-import ru.nsu.logic.lang.base.execution.ExecutionException;
-import ru.nsu.logic.lang.base.execution.IVirtualMachine;
-import ru.nsu.logic.lang.base.grammar.IStatement;
+import ru.nsu.logic.lang.excution.common.ExecutionException;
+import ru.nsu.logic.lang.excution.common.IVirtualMachine;
+import ru.nsu.logic.lang.grammar.common.IStatement;
 
 public class NumberValue extends SimpleNode implements IStatement {
     @Getter
@@ -13,10 +13,6 @@ public class NumberValue extends SimpleNode implements IStatement {
 
     public NumberValue(int i) {
         super(i);
-    }
-
-    public NumberValue(LStatement p, int i) {
-        super(p, i);
     }
 
     public double asDouble() {

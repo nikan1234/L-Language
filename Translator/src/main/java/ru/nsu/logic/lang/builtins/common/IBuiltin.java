@@ -1,8 +1,8 @@
 package ru.nsu.logic.lang.builtins.common;
 
-import ru.nsu.logic.lang.base.execution.ExecutionException;
-import ru.nsu.logic.lang.base.execution.IVirtualMachine;
-import ru.nsu.logic.lang.base.grammar.IStatement;
+import ru.nsu.logic.lang.excution.common.ExecutionException;
+import ru.nsu.logic.lang.excution.common.IVirtualMachine;
+import ru.nsu.logic.lang.grammar.common.IStatement;
 
 import java.util.List;
 

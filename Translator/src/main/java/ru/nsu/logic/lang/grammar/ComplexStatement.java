@@ -2,9 +2,9 @@ package ru.nsu.logic.lang.grammar;
 
 import lombok.Getter;
 import lombok.Setter;
-import ru.nsu.logic.lang.base.execution.ExecutionException;
-import ru.nsu.logic.lang.base.execution.IVirtualMachine;
-import ru.nsu.logic.lang.base.grammar.IStatement;
+import ru.nsu.logic.lang.excution.common.ExecutionException;
+import ru.nsu.logic.lang.excution.common.IVirtualMachine;
+import ru.nsu.logic.lang.grammar.common.IStatement;
 import ru.nsu.logic.lang.utils.Calculator;
 
 import java.util.ArrayList;
@@ -23,13 +23,8 @@ public class ComplexStatement extends SimpleNode implements IStatement {
         super(i);
     }
 
-    public ComplexStatement(final LStatement p, int i) {
-        super(p, i);
-    }
-
     private ComplexStatement(final List<IStatement> operands,
                              final List<String> operators) {
-        super(GENERATED_STATEMENT_ID);
         this.operands = operands;
         this.operators = operators;
     }

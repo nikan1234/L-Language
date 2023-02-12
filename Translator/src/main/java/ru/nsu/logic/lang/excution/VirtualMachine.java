@@ -1,16 +1,16 @@
 package ru.nsu.logic.lang.excution;
 
-import ru.nsu.logic.lang.base.compilation.ICompilationRegistry;
-import ru.nsu.logic.lang.base.compilation.ICompiledClass;
-import ru.nsu.logic.lang.base.compilation.ICompiledFunction;
-import ru.nsu.logic.lang.base.execution.*;
-import ru.nsu.logic.lang.base.grammar.IStatement;
-import ru.nsu.logic.lang.compilator.CompiledProgram;
+import ru.nsu.logic.lang.compilation.common.ICompilationRegistry;
+import ru.nsu.logic.lang.compilation.common.ICompiledClass;
+import ru.nsu.logic.lang.compilation.common.ICompiledFunction;
+import ru.nsu.logic.lang.grammar.common.IStatement;
+import ru.nsu.logic.lang.compilation.CompiledProgram;
+import ru.nsu.logic.lang.excution.common.*;
 import ru.nsu.logic.lang.grammar.VariableStatement;
 
 import java.util.HashMap;
 
-import static ru.nsu.logic.lang.base.grammar.IStatement.GENERATED_STATEMENT_ID;
+import static ru.nsu.logic.lang.grammar.common.IStatement.GENERATED_STATEMENT_ID;
 
 
 public class VirtualMachine implements IVirtualMachine {

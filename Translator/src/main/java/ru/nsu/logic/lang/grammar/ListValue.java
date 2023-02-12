@@ -2,9 +2,9 @@ package ru.nsu.logic.lang.grammar;
 
 import lombok.Getter;
 import lombok.Setter;
-import ru.nsu.logic.lang.base.execution.ExecutionException;
-import ru.nsu.logic.lang.base.execution.IVirtualMachine;
-import ru.nsu.logic.lang.base.grammar.IStatement;
+import ru.nsu.logic.lang.excution.common.ExecutionException;
+import ru.nsu.logic.lang.excution.common.IVirtualMachine;
+import ru.nsu.logic.lang.grammar.common.IStatement;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -18,12 +18,7 @@ public class ListValue extends SimpleNode implements IStatement {
         super(i);
     }
 
-    public ListValue(LStatement p, int i) {
-        super(p, i);
-    }
-
-    public ListValue(final List<IStatement> elements, final int i) {
-        super(i);
+    public ListValue(final List<IStatement> elements) {
         this.elements = elements;
     }
 
@@ -42,7 +37,7 @@ public class ListValue extends SimpleNode implements IStatement {
                 break;
             }
         }
-        return new ExecutionResult(new ListValue(executed, id), completed);
+        return new ExecutionResult(new ListValue(executed), completed);
     }
 
     @Override

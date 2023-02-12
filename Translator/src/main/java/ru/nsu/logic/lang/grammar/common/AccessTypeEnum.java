@@ -1,4 +1,4 @@
-package ru.nsu.logic.lang.grammar;
+package ru.nsu.logic.lang.grammar.common;
 
 public enum AccessTypeEnum {
     PUBLIC,
