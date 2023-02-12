@@ -1,5 +1,7 @@
 package ru.nsu.logic.lang.grammar;
 
+import ru.nsu.logic.lang.grammar.common.FileLocation;
+
 public class SimpleNode implements Node {
 
     protected Node parent;
@@ -7,6 +9,7 @@ public class SimpleNode implements Node {
     protected int id;
     protected Object value;
     protected LStatement parser;
+    protected FileLocation location;
 
     protected static final int GENERATED_STATEMENT_ID = -1;
 
@@ -14,13 +17,18 @@ public class SimpleNode implements Node {
         this(GENERATED_STATEMENT_ID);
     }
 
+    public SimpleNode(final FileLocation location) {
+        this(GENERATED_STATEMENT_ID);
+        this.location = location;
+    }
+
     public SimpleNode(int id) {
         this.id = id;
     }
 
     public SimpleNode(LStatement p, int id) {
-        this(id);
-        parser = p;
+        this.parser = p;
+        this.id = id;
     }
 
     public void jjtOpen() {
@@ -53,6 +61,9 @@ public class SimpleNode implements Node {
 
     public void jjtSetValue(Object value) { this.value = value; }
     public Object jjtGetValue() { return value; }
+
+    public void setLocation(final FileLocation location) {this.location = location;}
+    public FileLocation getLocation() {return location;}
 
   /* You can override these two methods in subclasses of SimpleNode to
      customize the way the node appears when the tree is dumped.  If

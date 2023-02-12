@@ -3,6 +3,7 @@ package ru.nsu.logic.lang.grammar;
 import lombok.Setter;
 import ru.nsu.logic.lang.excution.common.ExecutionException;
 import ru.nsu.logic.lang.excution.common.IVirtualMachine;
+import ru.nsu.logic.lang.grammar.common.FileLocation;
 import ru.nsu.logic.lang.grammar.common.IStatement;
 
 public class AssignmentStatement extends SimpleNode implements IStatement {
@@ -16,7 +17,9 @@ public class AssignmentStatement extends SimpleNode implements IStatement {
         super(i);
     }
 
-    private AssignmentStatement(final IStatement target, final IStatement what) {
+    private AssignmentStatement(final FileLocation location,
+                                final IStatement target, final IStatement what) {
+        super(location);
         this.target = target;
         this.what = what;
     }
@@ -26,7 +29,7 @@ public class AssignmentStatement extends SimpleNode implements IStatement {
         final ExecutionResult<IStatement> whatExecuted =  what.execute(machine);
         final IStatement value = whatExecuted.getValue();
         if (!whatExecuted.isCompleted())
-            return new ExecutionResult<>(new AssignmentStatement(target, value), false);
+            return new ExecutionResult<>(new AssignmentStatement(getLocation(), target, value), false);
 
         if (target instanceof VariableStatement) {
             final VariableStatement variable = (VariableStatement) target;

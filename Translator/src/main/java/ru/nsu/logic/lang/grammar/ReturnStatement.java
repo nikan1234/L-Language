@@ -4,6 +4,7 @@ import lombok.Getter;
 import lombok.Setter;
 import ru.nsu.logic.lang.excution.common.ExecutionException;
 import ru.nsu.logic.lang.excution.common.IVirtualMachine;
+import ru.nsu.logic.lang.grammar.common.FileLocation;
 import ru.nsu.logic.lang.grammar.common.IStatement;
 
 public class ReturnStatement extends SimpleNode implements IStatement {
@@ -15,7 +16,8 @@ public class ReturnStatement extends SimpleNode implements IStatement {
         super(i);
     }
 
-    private ReturnStatement(final IStatement what) {
+    private ReturnStatement(final FileLocation location, final IStatement what) {
+        super(location);
         this.what = what;
     }
 
@@ -26,6 +28,7 @@ public class ReturnStatement extends SimpleNode implements IStatement {
             machine.onEntryCompleted(whatExecuted.getValue());
             return new ExecutionResult<>(null, true);
         }
-        return new ExecutionResult<>(new ReturnStatement(whatExecuted.getValue()), false);
+        return new ExecutionResult<>(new ReturnStatement(
+                getLocation(), whatExecuted.getValue()), false);
     }
 }

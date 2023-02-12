@@ -15,9 +15,6 @@ public class ListLen extends Builtin {
     public IStatement evaluate(final List<IStatement> arguments) throws ExecutionException {
         assertArgumentCount(arguments, 1);
         final ListValue list = asType(arguments.get(0), ListValue.class);
-
-        final NumberValue length = new NumberValue();
-        length.setNumber(list.getElements().size());
-        return length;
+        return new NumberValue(null, list.getElements().size());
     }
 }

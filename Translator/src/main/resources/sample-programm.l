@@ -22,7 +22,7 @@ function sqr(x) {
   return x * x;
 }
 
-rr1 := [foo(1) + 1, foo(2), foo(3)];
+rr1 := [foo(1) + 1, bar(2), foo(3)];
 print(rr1);
 rr1 := cons(200, cons(100, rr1));
 print(rr1);
@@ -45,10 +45,9 @@ print(v4);
 print(cons([1, 2], [3, 4, 5]));
 
 delta := 5;
-gamma := cond(delta > 0 -> sqr(100) + 100,
-              delta > 2 -> sqr(200),
+gamma := cond(delta > 0 ==> cond(delta = 2 ==> sqr(10), sqr(30)),
+              delta > 2 ==> sqr(200),
               sqr(6));
 print(gamma);
-
 
 

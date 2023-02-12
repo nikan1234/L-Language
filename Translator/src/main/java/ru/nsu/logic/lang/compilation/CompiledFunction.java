@@ -4,6 +4,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.Singular;
 import ru.nsu.logic.lang.compilation.common.ICompiledFunction;
+import ru.nsu.logic.lang.grammar.common.FileLocation;
 import ru.nsu.logic.lang.grammar.common.IStatement;
 import ru.nsu.logic.lang.grammar.common.AccessTypeEnum;
 
@@ -24,4 +25,7 @@ public class CompiledFunction implements ICompiledFunction {
     @Getter
     @Singular("statment")
     final private List<IStatement> body;
+
+    @Getter
+    final private FileLocation location;
 }

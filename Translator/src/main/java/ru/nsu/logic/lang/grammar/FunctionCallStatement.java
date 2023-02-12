@@ -4,8 +4,10 @@ import lombok.Getter;
 import lombok.Setter;
 import ru.nsu.logic.lang.compilation.common.ICompiledFunction;
 import ru.nsu.logic.lang.excution.common.ExecutionException;
+import ru.nsu.logic.lang.excution.common.IContext;
 import ru.nsu.logic.lang.excution.common.IPipelineEntry;
 import ru.nsu.logic.lang.excution.common.IVirtualMachine;
+import ru.nsu.logic.lang.grammar.common.FileLocation;
 import ru.nsu.logic.lang.grammar.common.IStatement;
 import ru.nsu.logic.lang.builtins.common.BuiltinsRegistry;
 import ru.nsu.logic.lang.excution.PipelineEntry;
@@ -26,8 +28,10 @@ public class FunctionCallStatement extends SimpleNode implements IStatement {
     }
 
 
-    private FunctionCallStatement(final String functionName,
+    private FunctionCallStatement(final FileLocation fileLocation,
+                                  final String functionName,
                                   final List<IStatement> callParameters) {
+        super(fileLocation);
         this.functionName = functionName;
         this.callParameters = callParameters;
     }
@@ -43,7 +47,9 @@ public class FunctionCallStatement extends SimpleNode implements IStatement {
 
             executed.set(i, executionResult.getValue());
             if (!executionResult.isCompleted())
-                return new ExecutionResult<>(new FunctionCallStatement(functionName, executed), false);
+                return new ExecutionResult<>(
+                        new FunctionCallStatement(getLocation(), functionName, executed),
+                        false);
         }
 
         if (isBuiltInFunction()) {
@@ -60,9 +66,16 @@ public class FunctionCallStatement extends SimpleNode implements IStatement {
     }
 
     private ExecutionResult<IStatement> placeToPipeline(final IVirtualMachine machine) throws ExecutionException {
+        final IContext context = machine.getPipeline().getContext();
+
+        if (functionName.equals(context.getFunctionName()))
+            throw new ExecutionException("Found recursion in " + functionName);
+
         final Optional<ICompiledFunction> function = machine.getCompiledFunctions().lookup(functionName);
         if (!function.isPresent())
             throw new ExecutionException("Function not found: " + functionName);
+        if (function.get().getLocation().compareTo(context.getLocation()) > 0)
+            throw new ExecutionException("Function " + functionName + " is not declared yet");
 
         final List<String> argNames = function.get().getArguments();
         if (argNames.size() != callParameters.size())
@@ -70,7 +83,11 @@ public class FunctionCallStatement extends SimpleNode implements IStatement {
                     "Wrong number of parameters in " + functionName + ". Expected: " + argNames.size());
 
         // Replace function call with variable statement and add new entry to pipeline
-        final IPipelineEntry entry = new PipelineEntry(executeArguments(machine, argNames), function.get().getBody());
+        final IPipelineEntry entry = new PipelineEntry(
+                functionName,
+                executeArguments(machine, argNames),
+                function.get().getBody()
+        );
         return new ExecutionResult<>(machine.onPushEntry(entry), false);
     }
 

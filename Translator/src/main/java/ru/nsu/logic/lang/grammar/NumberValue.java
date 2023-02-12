@@ -4,6 +4,7 @@ import lombok.Getter;
 import lombok.Setter;
 import ru.nsu.logic.lang.excution.common.ExecutionException;
 import ru.nsu.logic.lang.excution.common.IVirtualMachine;
+import ru.nsu.logic.lang.grammar.common.FileLocation;
 import ru.nsu.logic.lang.grammar.common.IStatement;
 
 public class NumberValue extends SimpleNode implements IStatement {
@@ -11,10 +12,13 @@ public class NumberValue extends SimpleNode implements IStatement {
     @Setter
     private Number number;
 
-    public NumberValue() {}
-
     public NumberValue(int i) {
         super(i);
+    }
+
+    public NumberValue(final FileLocation location, final Number number) {
+        super(location);
+        this.number = number;
     }
 
     public double asDouble() {

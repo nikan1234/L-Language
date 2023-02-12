@@ -4,6 +4,7 @@ import lombok.Getter;
 import lombok.Setter;
 import ru.nsu.logic.lang.excution.common.ExecutionException;
 import ru.nsu.logic.lang.excution.common.IVirtualMachine;
+import ru.nsu.logic.lang.grammar.common.FileLocation;
 import ru.nsu.logic.lang.grammar.common.IStatement;
 
 public class VariableStatement extends SimpleNode implements IStatement {
@@ -15,7 +16,8 @@ public class VariableStatement extends SimpleNode implements IStatement {
         super(i);
     }
 
-    public VariableStatement(final String name) {
+    public VariableStatement(final FileLocation location, final String name) {
+        super(location);
         this.name = name;
     }
 

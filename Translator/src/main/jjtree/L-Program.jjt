@@ -45,7 +45,7 @@ TOKEN : {
   |
   < DOT: "." >
   |
-  < ARROW: "->" >
+  < ARROW: "==>" >
   |
   < COND: "cond" >
   |
@@ -72,6 +72,14 @@ TOKEN : {
   < IDENTIFIER: ["a"-"z","A"-"Z", "_"] ( ["a"-"z","A"-"Z","0"-"9","_"] )* >
   |
   < BINARY_OP: ["+", "-", "*", "/"] >
+  |
+  < FOR_ALL: "forall" >
+  |
+  < EXISTS: "exists" >
+  |
+  < IN: "in" >
+  |
+  < SUBSETEQ: "subseteq" >
   |
   < EQ: "=" >
   |
@@ -110,10 +118,10 @@ AccessTypeEnum AccessType() :
   {return AccessTypeEnum.valueOf(t.image.toUpperCase());}
 }
 
-String Identifier() :
+Token Identifier() :
 {Token t;}
 {
-  t=<IDENTIFIER> {return t.image;}
+  t=<IDENTIFIER> {return t;}
 }
 
 
@@ -128,57 +136,74 @@ void AllDeclarations():
 }
 
 String ArgumentDeclaration() # ArgumentDeclaration :
-{String arg;}
+{Token arg;}
 {
   arg=Identifier()
-  {jjtThis.jjtSetValue(arg);return arg;}
+  {
+    jjtThis.jjtSetValue(arg.image);
+    jjtThis.setLocation(new FileLocation(arg.beginLine, arg.beginColumn));
+    return arg.image;
+  }
 }
 
 // 1. Function Declaration
 
 void FunctionDeclaration() #FunctionDeclaration :
-{String functionName;}
+{Token functionName;}
 {
   <FUNCTION> functionName=Identifier()
   <OPAR> (ArgumentDeclaration() (<COMMA> ArgumentDeclaration())*)? <CPAR>
   <OBR> (AllStatements())* <CBR>
-  {jjtThis.setName(functionName);}
+  {
+    jjtThis.setName(functionName.image);
+    jjtThis.setLocation(new FileLocation(functionName.beginLine, functionName.beginColumn));
+  }
 }
 
 // 2. Class Declaration
 
-void ClassDeclaration() #ClassDeclaration :
-{String className; String baseClass = null;}
-{
-  <CLASS> className=Identifier() [baseClass=InheritanceDeclaration()]
-  <OBR> (LOOKAHEAD(2) ClassMemberDeclaration() | ClassMethodDeclaration())*
-  <CBR>
-  {jjtThis.setClassName(className);
-   jjtThis.setBaseClass(baseClass);}
-}
-
-String InheritanceDeclaration() :
-{String className;}
+Token InheritanceDeclaration() :
+{Token className;}
 {
   <INHERIT> className=Identifier()
   {return className;}
 }
 
+void ClassDeclaration() #ClassDeclaration :
+{Token className; Token baseClass = null;}
+{
+  <CLASS> className=Identifier() [baseClass=InheritanceDeclaration()]
+  <OBR> (LOOKAHEAD(2) ClassMemberDeclaration() | ClassMethodDeclaration())*
+  <CBR>
+  {
+    jjtThis.setClassName(className.image);
+    jjtThis.setBaseClass(baseClass != null ? baseClass.image : null);
+    jjtThis.setLocation(new FileLocation(className.beginLine, className.beginColumn));
+  }
+}
+
 void ClassMemberDeclaration() #ClassMemberDeclaration :
-{AccessTypeEnum access; String member;}
+{AccessTypeEnum access; Token member;}
 {
   access=AccessType() member=Identifier() <END>
-  {jjtThis.setAccessType(access);jjtThis.setName(member);}
+  {
+    jjtThis.setAccessType(access);
+    jjtThis.setName(member.image);
+    jjtThis.setLocation(new FileLocation(member.beginLine, member.beginColumn));
+  }
 }
 
 void ClassMethodDeclaration() #ClassMethodDeclaration :
-{AccessTypeEnum access = AccessTypeEnum.PROTECTED; String methodName;}
+{AccessTypeEnum access = AccessTypeEnum.PROTECTED; Token methodName;}
 {
   [access = AccessType()] <FUNCTION> methodName=Identifier()
   <OPAR> (ArgumentDeclaration() (<COMMA> ArgumentDeclaration())*)? <CPAR>
   <OBR> (AllStatements())* <CBR>
-  {jjtThis.setAccessType(access);
-   jjtThis.setName(methodName);}
+  {
+    jjtThis.setAccessType(access);
+    jjtThis.setName(methodName.image);
+    jjtThis.setLocation(new FileLocation(methodName.beginLine, methodName.beginColumn));
+  }
 }
 
 
@@ -201,14 +226,19 @@ ComparisonFormula ComparisonFormula() # ComparisonFormula :
 {IStatement lhs; IStatement rhs; ComparisonOperator cmp;}
 {
    lhs = Statement() cmp=CmpOp() rhs = Statement()
-   {jjtThis.setLeft(lhs); jjtThis.setRight(rhs);jjtThis.setOperator(cmp); return jjtThis;}
+   {
+     jjtThis.setLeft(lhs);
+     jjtThis.setRight(rhs);
+     jjtThis.setOperator(cmp);
+     return jjtThis;
+   }
 }
 
 IFormula Formula() :
 {IFormula retVal;}
 {
    retVal=ComparisonFormula()
-   {return retVal;}
+   { return retVal; }
 }
 
 
@@ -219,13 +249,20 @@ IFormula Formula() :
 // 1. Cond
 
 CondStatement CondStatement() # CondStatement :
-{IFormula formula; IStatement statement;
+{Token t; IFormula formula; IStatement statement;
  List<IFormula> formulas = new ArrayList(); List<IStatement> statements = new ArrayList();}
 {
-   <COND><OPAR>
-   ((LOOKAHEAD(Formula() <ARROW>) formula=Formula() <ARROW> statement=Statement() <COMMA> {formulas.add(formula);statements.add(statement);})+
-    statement=Statement() {statements.add(statement);}) <CPAR>
-   {jjtThis.setFormulas(formulas);jjtThis.setStatements(statements);return jjtThis;}
+   t=<COND> <OPAR>
+   ((LOOKAHEAD(Formula() <ARROW>) formula=Formula() <ARROW> statement=Statement() <COMMA>
+    {formulas.add(formula);statements.add(statement);})+
+    statement=Statement() {statements.add(statement);})
+   <CPAR>
+   {
+     jjtThis.setFormulas(formulas);
+     jjtThis.setStatements(statements);
+     jjtThis.setLocation(new FileLocation(t.beginLine, t.beginColumn));
+     return jjtThis;
+   }
 }
 
 // 2. Iteration
@@ -241,59 +278,73 @@ CondStatement CondStatement() # CondStatement :
 NumberValue NumberVal() #NumberValue :
 {Token t;}
 {
-  t=<INT_VAL> {jjtThis.setNumber(Long.valueOf(t.image));   return jjtThis;} |
-  t=<FLT_VAL> {jjtThis.setNumber(Double.valueOf(t.image)); return jjtThis;}
+  t=<INT_VAL> { jjtThis.setNumber(Long.valueOf(t.image));   jjtThis.setLocation(new FileLocation(t.beginLine, t.beginColumn)); return jjtThis; } |
+  t=<FLT_VAL> { jjtThis.setNumber(Double.valueOf(t.image)); jjtThis.setLocation(new FileLocation(t.beginLine, t.beginColumn)); return jjtThis; }
 }
 
 NullValue NullVal() #NullValue :
-{}
+{Token t;}
 {
-  <NULL> {return jjtThis;}
+  t=<NULL>
+  {
+    return jjtThis;
+    jjtThis.setLocation(new FileLocation(t.beginLine, t.beginColumn));
+  }
 }
 
 ListValue ListVal() #ListValue :
-{IStatement element; List<IStatement> elements = new ArrayList();}
+{Token t; IStatement element; List<IStatement> elements = new ArrayList();}
 {
-    <OAR>
-      (element=Statement()         {elements.add(element);}
+    t = <OAR>
+      (        element=Statement() {elements.add(element);}
       (<COMMA> element=Statement() {elements.add(element);} )*)?
     <CAR>
     {
-       jjtThis.setElements(elements);
-       return jjtThis;
+      jjtThis.setElements(elements);
+      jjtThis.setLocation(new FileLocation(t.beginLine, t.beginColumn));
+      return jjtThis;
     }
 }
 
 // 2. Var and member
 
 MemberStatement MemberStatement() # MemberStatement :
-{String memberName;}
+{Token t;  Token memberName;}
 {
-  <THIS> <DOT> memberName=Identifier()
-  {jjtThis.setName(memberName); return jjtThis;}
+  t=<THIS> <DOT> memberName=Identifier()
+  {
+    jjtThis.setName(memberName.image);
+    jjtThis.setLocation(new FileLocation(t.beginLine, t.beginColumn));
+    return jjtThis;
+  }
 }
 
 VariableStatement VariableStatement() # VariableStatement :
-{String varName;}
+{Token varName;}
 {
   varName=Identifier()
-  {jjtThis.setName(varName); return jjtThis;}
+  {
+    jjtThis.setName(varName.image);
+    jjtThis.setLocation(new FileLocation(varName.beginLine, varName.beginColumn));
+    return jjtThis;
+  }
 }
 
 // 3. Right-value statements (function call, arithmetic expression, e.t.c.)
 
 FunctionCallStatement FunctionCallStatement() # FunctionCallStatement:
-{String calledFuncName; IStatement param; List<IStatement> params = new ArrayList();}
+{Token calledFuncName; IStatement param; List<IStatement> params = new ArrayList();}
 {
    calledFuncName=Identifier()
    <OPAR>
-      (param=Statement()         {params.add(param);}
-      (<COMMA> param=Statement() {params.add(param);} )*)?
+      (param=Statement()         { params.add(param); }
+      (<COMMA> param=Statement() { params.add(param); } )*)?
    <CPAR>
    {
-      jjtThis.setFunctionName(calledFuncName);
-      jjtThis.setCallParameters(params);
-      return jjtThis;
+     jjtThis.setFunctionName(calledFuncName.image);
+     jjtThis.setCallParameters(params);
+     jjtThis.setLocation(new FileLocation(calledFuncName.beginLine, calledFuncName.beginColumn));
+     return jjtThis;
     }
 }
 
@@ -306,7 +357,7 @@ IStatement SingleStatement() :
     retVal=MemberStatement() | retVal=VariableStatement() |
     retVal=ListVal() | retVal=NumberVal() | retVal=NullVal()
   )
-  {return retVal;}
+  { return retVal; }
 }
 
 ArithmeticStatement ArithmeticStatement() # ArithmeticStatement :
@@ -316,9 +367,13 @@ ArithmeticStatement ArithmeticStatement() # ArithmeticStatement :
  List<IStatement> args = new ArrayList();
  List<String> ops = new ArrayList();
 }
-{ (                (lhs=SingleStatement() | <OPAR> lhs=ArithmeticStatement() <CPAR>) {args.add(lhs);}
-   (op=<BINARY_OP> (rhs=SingleStatement() | <OPAR> rhs=ArithmeticStatement() <CPAR>) {args.add(rhs); ops.add(op.image);})+)
-  {jjtThis.setOperands(args); jjtThis.setOperators(ops); return jjtThis;}
+{ (                (lhs=SingleStatement() | <OPAR> lhs=ArithmeticStatement() <CPAR>) { args.add(lhs); }
+   (op=<BINARY_OP> (rhs=SingleStatement() | <OPAR> rhs=ArithmeticStatement() <CPAR>) { args.add(rhs); ops.add(op.image); })+)
+  {
+    jjtThis.setOperands(args);
+    jjtThis.setOperators(ops);
+    return jjtThis;
+  }
 }
 
 IStatement Statement():
@@ -326,23 +381,35 @@ IStatement Statement():
 {
   (LOOKAHEAD((<OPAR> ArithmeticStatement() <CPAR> | SingleStatement()) <BINARY_OP>) retVal = ArithmeticStatement() |
    retVal = SingleStatement())
-  {return retVal;}
+  { return retVal; }
 }
 
 // 4. Assignment, return
 
 void AllStatements() :
 {}
-{ (LOOKAHEAD(2) AssignmentStatement() | FunctionCallStatement() | ReturnStatement()) <END> }
+{
+  (LOOKAHEAD(2) AssignmentStatement() | FunctionCallStatement() | ReturnStatement()) <END>
+}
 
 void AssignmentStatement() # AssignmentStatement :
-{IStatement target; IStatement what;}
+{Token t; IStatement target; IStatement what;}
 {
-   (target=MemberStatement() | target=VariableStatement())
-   <ASSIGN> what = Statement()
-   {jjtThis.setTarget(target); jjtThis.setWhat(what);}
+  (target=MemberStatement() | target=VariableStatement())
+  t = <ASSIGN> what = Statement()
+  {
+    jjtThis.setTarget(target);
+    jjtThis.setWhat(what);
+    jjtThis.setLocation(new FileLocation(t.beginLine, t.beginColumn));
+  }
 }
 
 void ReturnStatement() # ReturnStatement :
-{IStatement what;}
-{ <RETURN> what=Statement() {jjtThis.setWhat(what);} }
+{Token t; IStatement what;}
+{
+  t = <RETURN> what=Statement()
+  {
+    jjtThis.setWhat(what);
+    jjtThis.setLocation(new FileLocation(t.beginLine, t.beginColumn));
+  }
+}

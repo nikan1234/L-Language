@@ -4,6 +4,7 @@ import lombok.Getter;
 import lombok.Setter;
 import ru.nsu.logic.lang.excution.common.ExecutionException;
 import ru.nsu.logic.lang.excution.common.IVirtualMachine;
+import ru.nsu.logic.lang.grammar.common.FileLocation;
 import ru.nsu.logic.lang.grammar.common.IStatement;
 import ru.nsu.logic.lang.utils.ArithmeticCalculator;
 
@@ -23,8 +24,10 @@ public class ArithmeticStatement extends SimpleNode implements IStatement {
         super(i);
     }
 
-    private ArithmeticStatement(final List<IStatement> operands,
+    private ArithmeticStatement(final FileLocation location,
+                                final List<IStatement> operands,
                                 final List<String> operators) {
+        super(location);
         this.operands = operands;
         this.operators = operators;
     }
@@ -41,7 +44,7 @@ public class ArithmeticStatement extends SimpleNode implements IStatement {
 
             executed.set(i, executionResult.getValue());
             if (!executionResult.isCompleted())
-                return new ExecutionResult<>(new ArithmeticStatement(executed, operators), false);
+                return new ExecutionResult<>(new ArithmeticStatement(getLocation(), executed, operators), false);
         }
         return new ExecutionResult<>(new ArithmeticCalculator(executed, operators).calculate(), true);
     }

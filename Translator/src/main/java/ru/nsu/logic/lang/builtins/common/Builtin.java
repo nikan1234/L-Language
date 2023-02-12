@@ -1,5 +1,6 @@
 package ru.nsu.logic.lang.builtins.common;
 
+import ru.nsu.logic.lang.excution.common.ExecutionException;
 import ru.nsu.logic.lang.excution.common.IVirtualMachine;
 import ru.nsu.logic.lang.grammar.common.IStatement;
 
@@ -13,21 +14,23 @@ public abstract class Builtin implements IBuiltin {
         this.machine = machine;
     }
 
-    protected static void assertArgumentCount(final List<IStatement> args, final int expected) {
+    protected static void assertArgumentCount(final List<IStatement> args,
+                                              final int expected) throws ExecutionException{
         if (expected != args.size())
-            throw new IllegalArgumentException(
+            throw new ExecutionException(
                     "Wrong argument count. " +
                     "Expected: " + expected + ". " +
                     "Actual: " + args.size());
     }
 
-    protected static <T> void assertArgumentType(final IStatement arg, final Class<T> targetType) {
+    protected static <T> void assertArgumentType(final IStatement arg,
+                                                 final Class<T> targetType) throws ExecutionException {
         if (!targetType.isInstance(arg)) {
-            throw new IllegalArgumentException("Wrong argument type");
+            throw new ExecutionException("Wrong argument type");
         }
     }
 
-    protected static <T> T asType(final IStatement arg, final Class<T> type) {
+    protected static <T> T asType(final IStatement arg, final Class<T> type) throws ExecutionException {
         assertArgumentType(arg, type);
         return type.cast(arg);
     }

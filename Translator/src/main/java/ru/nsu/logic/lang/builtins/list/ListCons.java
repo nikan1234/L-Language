@@ -16,6 +16,6 @@ public class ListCons extends Builtin {
 
         final List<IStatement> tail = asType(arguments.get(1), ListValue.class).getElements();
         tail.add(0, arguments.get(0));
-        return new ListValue(tail);
+        return new ListValue(null, tail);
     }
 }

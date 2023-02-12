@@ -1,15 +1,14 @@
 package ru.nsu.logic.lang.excution;
 
+import ru.nsu.logic.lang.compilation.CompiledProgram;
 import ru.nsu.logic.lang.compilation.common.ICompilationRegistry;
 import ru.nsu.logic.lang.compilation.common.ICompiledClass;
 import ru.nsu.logic.lang.compilation.common.ICompiledFunction;
-import ru.nsu.logic.lang.grammar.common.IStatement;
-import ru.nsu.logic.lang.compilation.CompiledProgram;
 import ru.nsu.logic.lang.excution.common.*;
 import ru.nsu.logic.lang.grammar.VariableStatement;
+import ru.nsu.logic.lang.grammar.common.IStatement;
 
 import java.util.HashMap;
-
 
 public class VirtualMachine implements IVirtualMachine {
     private final ICompilationRegistry<ICompiledClass> compiledClasses;
@@ -18,11 +17,11 @@ public class VirtualMachine implements IVirtualMachine {
     private final IPipeline pipeline = new Pipeline();
 
     public static VirtualMachine create(final CompiledProgram compiledProgram) {
-        VirtualMachine machine = new VirtualMachine(
+        final VirtualMachine machine = new VirtualMachine(
                 compiledProgram.getCompiledClasses(),
                 compiledProgram.getCompiledFunctions());
 
-        machine.getPipeline().pushEntry(new PipelineEntry(new HashMap<>(), compiledProgram.getBody()));
+        machine.getPipeline().pushEntry(new PipelineEntry("", new HashMap<>(), compiledProgram.getBody()));
         return machine;
     }
 
@@ -42,6 +41,7 @@ public class VirtualMachine implements IVirtualMachine {
         return compiledClasses;
     }
 
+
     @Override
     public IScreen getScreen() {
         return screen;
@@ -56,7 +56,7 @@ public class VirtualMachine implements IVirtualMachine {
     public IStatement onPushEntry(final IPipelineEntry entry) {
         final String uniqueName = pipeline.getCurrentEntry().pushTempVariable();
         pipeline.pushEntry(entry);
-        return new VariableStatement(uniqueName);
+        return new VariableStatement(null, uniqueName);
     }
 
     @Override
@@ -70,16 +70,27 @@ public class VirtualMachine implements IVirtualMachine {
 
     @Override
     public void run() throws ExecutionException {
-        while (!pipeline.empty()) {
-            final IPipelineEntry currentEntry = pipeline.getCurrentEntry();
-            if (currentEntry.completed()) {
-                pipeline.popEntry();
-                continue;
+        IContext context = null;
+        try {
+            while (!pipeline.empty()) {
+                final IPipelineEntry currentEntry = pipeline.getCurrentEntry();
+                if (currentEntry.completed()) {
+                    pipeline.popEntry();
+                    continue;
+                }
+                context = pipeline.getContext();
+                final IStatement statement = currentEntry.getCurrentStatement();
+                final IStatement.ExecutionResult<IStatement> result = statement.execute(this);
+                currentEntry.setCurrentStatement(result.getValue());
+                if (result.isCompleted())
+                    currentEntry.nextStatement();
             }
-            final IStatement.ExecutionResult<IStatement> result = currentEntry.getCurrentStatement().execute(this);
-            currentEntry.setCurrentStatement(result.getValue());
-            if (result.isCompleted())
-                currentEntry.nextStatement();
+        }
+        catch (final ExecutionException e) {
+            if (context != null)
+                throw new ExecutionException(
+                        "Error at row " + context.getLocation().getRow() + ": " + e.getMessage());
+            throw e;
         }
     }
 }

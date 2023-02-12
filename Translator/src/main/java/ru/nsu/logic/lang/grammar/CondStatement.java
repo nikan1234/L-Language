@@ -3,6 +3,7 @@ package ru.nsu.logic.lang.grammar;
 import lombok.Setter;
 import ru.nsu.logic.lang.excution.common.ExecutionException;
 import ru.nsu.logic.lang.excution.common.IVirtualMachine;
+import ru.nsu.logic.lang.grammar.common.FileLocation;
 import ru.nsu.logic.lang.grammar.common.IFormula;
 import ru.nsu.logic.lang.grammar.common.IStatement;
 
@@ -22,9 +23,11 @@ public class CondStatement extends SimpleNode implements IStatement {
         currentStatementIndex = 0;
     }
 
-    private CondStatement(final List<IFormula> formulas,
+    private CondStatement(final FileLocation location,
+                          final List<IFormula> formulas,
                           final List<IStatement> statements,
                           final int currentStatementIndex) {
+        super(location);
         this.formulas = formulas;
         this.statements = statements;
         this.currentStatementIndex = currentStatementIndex;
@@ -40,7 +43,7 @@ public class CondStatement extends SimpleNode implements IStatement {
 
             if (!formulaExecuted.isCompleted())
                 return new ExecutionResult<>(
-                        new CondStatement(executedFormulas, statements, i),
+                        new CondStatement(getLocation(), executedFormulas, statements, i),
                         false);
 
             if (asBool(formulaExecuted.getValue())) {

@@ -19,9 +19,4 @@ public class CompilationRegistry<T extends ICompilationRegistry.IEntry> implemen
     public Optional<T> lookup(final String name) {
         return registry.stream().filter(e -> e.getName().equals(name)).findFirst();
     }
-
-    public boolean isBefore(final String first, final String second) {
-        // TODO implement
-        return true;
-    }
 }

@@ -8,19 +8,27 @@ import ru.nsu.logic.lang.grammar.common.IStatement;
 import java.util.*;
 
 public class PipelineEntry implements IPipelineEntry {
+    private final String name;
     private final Map<String, IStatement> varInitializers;
     private final Stack<String> tempVariables;
 
     private final List<IStatement> statements;
     private int currentStatementIndex;
 
-    public PipelineEntry(final Map<String, IStatement> varInitializers,
+    public PipelineEntry(final String name,
+                         final Map<String, IStatement> varInitializers,
                          final List<IStatement> statements) {
+        this.name = name;
         this.varInitializers = new HashMap<>(varInitializers);
         this.tempVariables = new Stack<>();
 
         this.statements = new ArrayList<>(statements);
         this.currentStatementIndex = 0;
+    }
+
+    @Override
+    public String getName() {
+        return name;
     }
 
     @Override

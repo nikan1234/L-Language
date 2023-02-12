@@ -4,6 +4,7 @@ import lombok.Getter;
 import lombok.Setter;
 import ru.nsu.logic.lang.excution.common.ExecutionException;
 import ru.nsu.logic.lang.excution.common.IVirtualMachine;
+import ru.nsu.logic.lang.grammar.common.FileLocation;
 import ru.nsu.logic.lang.grammar.common.IStatement;
 
 import java.util.ArrayList;
@@ -18,7 +19,9 @@ public class ListValue extends SimpleNode implements IStatement {
         super(i);
     }
 
-    public ListValue(final List<IStatement> elements) {
+    public ListValue(final FileLocation location,
+                     final List<IStatement> elements) {
+        super(location);
         this.elements = elements;
     }
 
@@ -37,7 +40,7 @@ public class ListValue extends SimpleNode implements IStatement {
                 break;
             }
         }
-        return new ExecutionResult<>(new ListValue(executed), completed);
+        return new ExecutionResult<>(new ListValue(getLocation(), executed), completed);
     }
 
     @Override

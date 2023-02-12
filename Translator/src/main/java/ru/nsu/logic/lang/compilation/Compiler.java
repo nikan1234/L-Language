@@ -39,6 +39,7 @@ public class Compiler {
         final CompiledFunction.CompiledFunctionBuilder builder = CompiledFunction.builder();
         builder.name(decl.getName());
         builder.accessType(AccessTypeEnum.PUBLIC);
+        builder.location(decl.getLocation());
 
         new FilteredVisitor<>(ArgumentDeclaration.class).children(decl)
                 .forEach(arg -> builder.arg((String) arg.jjtGetValue()));
