@@ -59,15 +59,23 @@ TOKEN : {
   |
   < ACCESS_PROTECTED: "protected">
   |
-  < Identifier: ["a"-"z","A"-"Z", "_"] ( ["a"-"z","A"-"Z","0"-"9","_"] )* >
+  < LOGIC_AND: "and" >
   |
-  < BinaryOp: ["+", "-", "*", "/"] >
+  < LOGIC_OR: "or" >
   |
-  < IntVal: ( ["0"-"9"] )+ >
+  < LOGIC_NOT: "not" >
   |
-  < FloatVal: ( ["0"-"9"] )+ "." ( ["0"-"9"] )+  >
+  < IDENTIFIER: ["a"-"z","A"-"Z", "_"] ( ["a"-"z","A"-"Z","0"-"9","_"] )* >
   |
-  < StrVal: "\"" (~["\""])* "\"" >
+  < BINARY_OP: ["+", "-", "*", "/"] >
+  |
+  < EQ: "=" > | < NE: "<>" > | < LT: "<" > | < GT: ">" > | < LE: "<=" > | < GE: ">=" >
+  |
+  < INT_VAL: ( ["0"-"9"] )+ >
+  |
+  < FLT_VAL: ( ["0"-"9"] )+ "." ( ["0"-"9"] )+  >
+  |
+  < STR_VAL: "\"" (~["\""])* "\"" >
 }
 
 /*-----------------Common-----------------*/
@@ -79,10 +87,10 @@ AccessTypeEnum AccessType() :
   {return AccessTypeEnum.valueOf(t.image.toUpperCase());}
 }
 
-String Identifier() :
+String IDENTIFIER() :
 {Token t;}
 {
-  t=<Identifier> {return t.image;}
+  t=<IDENTIFIER> {return t.image;}
 }
 
 
@@ -99,8 +107,21 @@ void ProgramDeclaration():
 String ArgumentDeclaration() # ArgumentDeclaration :
 {String arg;}
 {
-  arg=Identifier()
+  arg=IDENTIFIER()
   {jjtThis.jjtSetValue(arg);return arg;}
+}
+
+/* ---------------FORMULAS-------------------------*/
+
+ComparisonFormulaStatement ComparisonFormulaStatement() # ComparisonFormulaStatement :
+{IStatement lhs; IStatement rhs;}
+{
+   LOOKAHEAD(2) lhs = TermStatement() <EQ> rhs = TermStatement() {jjtThis.setLeft(lhs); jjtThis.setRight(rhs);jjtThis.setOperator(ComparisonOperator.EQ); return jjtThis;} |
+   LOOKAHEAD(2) lhs = TermStatement() <NE> rhs = TermStatement() {jjtThis.setLeft(lhs); jjtThis.setRight(rhs);jjtThis.setOperator(ComparisonOperator.NE); return jjtThis;} |
+   LOOKAHEAD(2) lhs = TermStatement() <LT> rhs = TermStatement() {jjtThis.setLeft(lhs); jjtThis.setRight(rhs);jjtThis.setOperator(ComparisonOperator.LT); return jjtThis;} |
+   LOOKAHEAD(2) lhs = TermStatement() <LE> rhs = TermStatement() {jjtThis.setLeft(lhs); jjtThis.setRight(rhs);jjtThis.setOperator(ComparisonOperator.LE); return jjtThis;} |
+   LOOKAHEAD(2) lhs = TermStatement() <GT> rhs = TermStatement() {jjtThis.setLeft(lhs); jjtThis.setRight(rhs);jjtThis.setOperator(ComparisonOperator.GT); return jjtThis;} |
+   LOOKAHEAD(2) lhs = TermStatement() <GE> rhs = TermStatement() {jjtThis.setLeft(lhs); jjtThis.setRight(rhs);jjtThis.setOperator(ComparisonOperator.GE); return jjtThis;}
 }
 
 /* ---------------STATEMENT -------------------------*/
@@ -108,8 +129,8 @@ String ArgumentDeclaration() # ArgumentDeclaration :
 NumberValue NumberVal() #NumberValue :
 {Token t;}
 {
-  t=<IntVal>   {long lv = Long.valueOf(t.image);     jjtThis.setNumber(lv); return jjtThis;} |
-  t=<FloatVal> {double dv = Double.valueOf(t.image); jjtThis.setNumber(dv); return jjtThis;}
+  t=<INT_VAL>   {long lv = Long.valueOf(t.image);     jjtThis.setNumber(lv); return jjtThis;} |
+  t=<FLT_VAL> {double dv = Double.valueOf(t.image); jjtThis.setNumber(dv); return jjtThis;}
 }
 
 NullValue NullVal() #NullValue :
@@ -122,8 +143,8 @@ ListValue ListVal() #ListValue :
 {IStatement element; List<IStatement> elements = new ArrayList();}
 {
     <OAR>
-      (element=rvalueStatement()         {elements.add(element);}
-      (<COMMA> element=rvalueStatement() {elements.add(element);} )*)?
+      (element=TermStatement()         {elements.add(element);}
+      (<COMMA> element=TermStatement() {elements.add(element);} )*)?
     <CAR>
     {
        jjtThis.setElements(elements);
@@ -134,24 +155,24 @@ ListValue ListVal() #ListValue :
 MemberStatement MemberStatement() # MemberStatement :
 {String memberName;}
 {
-  <THIS> <DOT> memberName=Identifier()
+  <THIS> <DOT> memberName=IDENTIFIER()
   {jjtThis.setName(memberName); return jjtThis;}
 }
 
 VariableStatement VariableStatement() # VariableStatement :
 {String varName;}
 {
-  varName=Identifier()
+  varName=IDENTIFIER()
   {jjtThis.setName(varName); return jjtThis;}
 }
 
 FunctionCallStatement FunctionCallStatement() # FunctionCallStatement:
 {String calledFuncName; IStatement param; List<IStatement> params = new ArrayList();}
 {
-   calledFuncName=Identifier()
+   calledFuncName=IDENTIFIER()
    <OPAR>
-      (param=rvalueStatement()         {params.add(param);}
-      (<COMMA> param=rvalueStatement() {params.add(param);} )*)?
+      (param=TermStatement()         {params.add(param);}
+      (<COMMA> param=TermStatement() {params.add(param);} )*)?
    <CPAR>
    {
       jjtThis.setFunctionName(calledFuncName);
@@ -179,15 +200,15 @@ ComplexStatement ComplexStatement() # ComplexStatement :
  List<IStatement> args = new ArrayList();
  List<String> ops = new ArrayList();
 }
-{ (               (lhs=SingleStatement() | <OPAR> lhs=ComplexStatement() <CPAR>) {args.add(lhs);}
-   (op=<BinaryOp> (rhs=SingleStatement() | <OPAR> rhs=ComplexStatement() <CPAR>) {args.add(rhs); ops.add(op.image);})+)
+{ (                (lhs=SingleStatement() | <OPAR> lhs=ComplexStatement() <CPAR>) {args.add(lhs);}
+   (op=<BINARY_OP> (rhs=SingleStatement() | <OPAR> rhs=ComplexStatement() <CPAR>) {args.add(rhs); ops.add(op.image);})+)
   {jjtThis.setOperands(args); jjtThis.setOperators(ops); return jjtThis;}
 }
 
-IStatement rvalueStatement():
+IStatement TermStatement():
 {IStatement retVal;}
 {
-  (LOOKAHEAD((<OPAR> ComplexStatement() <CPAR> | SingleStatement()) <BinaryOp>)
+  (LOOKAHEAD((<OPAR> ComplexStatement() <CPAR> | SingleStatement()) <BINARY_OP>)
    retVal = ComplexStatement()
    |
    retVal = SingleStatement())
@@ -198,13 +219,13 @@ AssignmentStatement AssignmentStatement() # AssignmentStatement :
 {IStatement target; IStatement what;}
 {
    (target=MemberStatement() | target=VariableStatement())
-   <ASSIGN> what = rvalueStatement()
+   <ASSIGN> what = TermStatement()
    {jjtThis.setTarget(target); jjtThis.setWhat(what); return jjtThis;}
 }
 
 void ReturnStatement() # ReturnStatement :
 {IStatement what;}
-{ <RETURN> what=rvalueStatement() {jjtThis.setWhat(what);} }
+{ <RETURN> what=TermStatement() {jjtThis.setWhat(what);} }
 
 void AllStatements() :
 {}
@@ -216,7 +237,7 @@ void AllStatements() :
 void ClassDeclaration() #ClassDeclaration :
 {String className; String baseClass = null;}
 {
-  <CLASS> className=Identifier() [baseClass=InheritanceDeclaration()]
+  <CLASS> className=IDENTIFIER() [baseClass=InheritanceDeclaration()]
   <OBR> (LOOKAHEAD(2) ClassMemberDeclaration() | ClassMethodDeclaration())*
   <CBR>
   {jjtThis.setClassName(className);
@@ -226,21 +247,21 @@ void ClassDeclaration() #ClassDeclaration :
 String InheritanceDeclaration() :
 {String className;}
 {
-  <INHERIT> className=Identifier()
+  <INHERIT> className=IDENTIFIER()
   {return className;}
 }
 
 void ClassMemberDeclaration() #ClassMemberDeclaration :
 {AccessTypeEnum access; String member;}
 {
-  access=AccessType() member=Identifier() <END>
+  access=AccessType() member=IDENTIFIER() <END>
   {jjtThis.setAccessType(access);jjtThis.setName(member);}
 }
 
 void ClassMethodDeclaration() #ClassMethodDeclaration :
 {AccessTypeEnum access = AccessTypeEnum.PROTECTED; String methodName;}
 {
-  [access = AccessType()] <FUNCTION> methodName=Identifier()
+  [access = AccessType()] <FUNCTION> methodName=IDENTIFIER()
   <OPAR> (ArgumentDeclaration() (<COMMA> ArgumentDeclaration())*)? <CPAR>
   <OBR> (AllStatements())* <CBR>
   {jjtThis.setAccessType(access);
@@ -252,7 +273,7 @@ void ClassMethodDeclaration() #ClassMethodDeclaration :
 void FunctionDeclaration() #FunctionDeclaration :
 {String functionName;}
 {
-  <FUNCTION> functionName=Identifier()
+  <FUNCTION> functionName=IDENTIFIER()
   <OPAR> (ArgumentDeclaration() (<COMMA> ArgumentDeclaration())*)? <CPAR>
   <OBR> (AllStatements())* <CBR>
   {jjtThis.setName(functionName);}

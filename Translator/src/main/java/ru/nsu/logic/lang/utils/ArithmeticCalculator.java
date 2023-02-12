@@ -9,12 +9,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class Calculator {
+public class ArithmeticCalculator {
 
     private final Expression expression;
 
-    public Calculator(final List<IStatement> operands,
-                      final List<String> operators) {
+    public ArithmeticCalculator(final List<IStatement> operands,
+                                final List<String> operators) {
         assertNumberTypes(operands);
 
         final StringBuilder expression = new StringBuilder(generateOperandName(0));

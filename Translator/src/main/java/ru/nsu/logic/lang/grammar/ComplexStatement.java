@@ -5,7 +5,7 @@ import lombok.Setter;
 import ru.nsu.logic.lang.excution.common.ExecutionException;
 import ru.nsu.logic.lang.excution.common.IVirtualMachine;
 import ru.nsu.logic.lang.grammar.common.IStatement;
-import ru.nsu.logic.lang.utils.Calculator;
+import ru.nsu.logic.lang.utils.ArithmeticCalculator;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -43,7 +43,7 @@ public class ComplexStatement extends SimpleNode implements IStatement {
             if (shouldBreak)
                 return new ExecutionResult(new ComplexStatement(executed, operators), false);
         }
-        return new ExecutionResult(new Calculator(executed, operators).calculate(), true);
+        return new ExecutionResult(new ArithmeticCalculator(executed, operators).calculate(), true);
     }
 
     @Override
