@@ -1,7 +1,7 @@
 package ru.nsu.logic.lang.builtins.common;
 
 import org.reflections.Reflections;
-import ru.nsu.logic.lang.excution.common.IVirtualMachine;
+import ru.nsu.logic.lang.execution.common.IVirtualMachine;
 
 import java.util.HashMap;
 import java.util.Map;

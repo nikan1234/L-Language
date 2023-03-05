@@ -1,6 +1,6 @@
 package ru.nsu.logic.lang.utils;
 
-import ru.nsu.logic.lang.grammar.Node;
+import ru.nsu.logic.lang.ast.Node;
 
 import java.util.LinkedList;
 import java.util.List;

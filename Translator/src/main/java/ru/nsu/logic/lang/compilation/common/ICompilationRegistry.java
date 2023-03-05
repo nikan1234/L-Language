@@ -1,7 +1,7 @@
 package ru.nsu.logic.lang.compilation.common;
 
 
-import ru.nsu.logic.lang.grammar.common.FileLocation;
+import ru.nsu.logic.lang.ast.FileLocation;
 
 import java.util.Optional;
 
