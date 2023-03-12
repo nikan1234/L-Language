@@ -46,7 +46,7 @@ print(cons([1, 2], [3, 4, 5]));
 
 delta := 5;
 gamma := cond(delta > 0 ==> cond(delta = 2 ==> sqr(10), sqr(30)),
-              delta > 2 ==> sqr(200),
+              forall x in [1, 3, 5] exists y in [1, 2] x > 2 ==> sqr(200),
               sqr(6));
 print(gamma);
 

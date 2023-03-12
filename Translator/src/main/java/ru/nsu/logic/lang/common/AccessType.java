@@ -1,6 +1,6 @@
 package ru.nsu.logic.lang.common;
 
-public enum AccessTypeEnum {
+public enum AccessType {
     PUBLIC,
     PROTECTED,
     PRIVATE;

@@ -69,7 +69,7 @@ TOKEN : {
   |
   < LOGIC_NOT: "not" >
   |
-  < FOR_ALL: "forall" >
+  < FORALL: "forall" >
   |
   < EXISTS: "exists" >
   |
@@ -116,7 +116,7 @@ void AccessType() # AccessType :
 {
   (t=<ACCESS_PUBLIC> | t=<ACCESS_PRIVATE> | t=<ACCESS_PROTECTED>)
   {
-    jjtThis.jjtSetValue(AccessTypeEnum.valueOf(t.image.toUpperCase()));
+    jjtThis.jjtSetValue(AccessType.valueOf(t.image.toUpperCase()));
   }
 }
 
@@ -229,6 +229,20 @@ ComparisonOperator CmpOp() :
   <GE> {return ComparisonOperator.GE;}
 }
 
+Quantifier Quantifier() :
+{}
+{
+  <FORALL> {return Quantifier.FORALL;} |
+  <EXISTS> {return Quantifier.EXISTS;}
+}
+
+SelectionSet SelectionSet() :
+{}
+{
+  <IN>       {return SelectionSet.EACH_ELEMENT;} |
+  <SUBSETEQ> {return SelectionSet.EACH_SUBSET;}
+}
+
 void ComparisonFormula() # ComparisonFormula :
 {ComparisonOperator cmp;}
 {
@@ -238,10 +252,16 @@ void ComparisonFormula() # ComparisonFormula :
    }
 }
 
+void QuantifierFormula() # QuantifierFormula() :
+{Token q;}
+{
+   Quantifier() Identifier() SelectionSet() Statement() Formula()
+}
+
 void Formula() :
 {}
 {
-   ComparisonFormula()
+   ComparisonFormula() | QuantifierFormula()
 }
 
 

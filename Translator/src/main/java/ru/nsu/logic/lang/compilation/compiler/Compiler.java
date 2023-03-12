@@ -2,7 +2,7 @@ package ru.nsu.logic.lang.compilation.compiler;
 
 import lombok.AllArgsConstructor;
 import ru.nsu.logic.lang.ast.*;
-import ru.nsu.logic.lang.common.AccessTypeEnum;
+import ru.nsu.logic.lang.common.AccessType;
 import ru.nsu.logic.lang.common.ComparisonOperator;
 import ru.nsu.logic.lang.compilation.common.*;
 import ru.nsu.logic.lang.compilation.statements.*;
@@ -175,7 +175,7 @@ public class Compiler implements ICompiler {
     private CompiledFunction compile(final ASTFunctionDeclaration decl) {
         final CompiledFunction.CompiledFunctionBuilder builder = CompiledFunction.builder();
         builder.name(decl.jjtGetValueAs(String.class));
-        builder.accessType(AccessTypeEnum.PUBLIC);
+        builder.accessType(AccessType.PUBLIC);
         builder.location(decl.jjtGetLocation());
 
         new FilteredVisitor<>(ASTArgumentDeclaration.class).children(decl)
