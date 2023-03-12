@@ -4,11 +4,13 @@ import lombok.AllArgsConstructor;
 import ru.nsu.logic.lang.ast.*;
 import ru.nsu.logic.lang.common.AccessType;
 import ru.nsu.logic.lang.common.ComparisonOperator;
+import ru.nsu.logic.lang.common.LimitedQuantifier;
 import ru.nsu.logic.lang.compilation.common.*;
 import ru.nsu.logic.lang.compilation.statements.*;
 import ru.nsu.logic.lang.compilation.statements.logic.ComparisonFormula;
 import ru.nsu.logic.lang.compilation.statements.logic.IFormula;
 import ru.nsu.logic.lang.common.IExecutable;
+import ru.nsu.logic.lang.compilation.statements.logic.QuantifierFormula;
 import ru.nsu.logic.lang.utils.FilteredVisitor;
 
 import java.util.ArrayList;
@@ -50,8 +52,13 @@ public class Compiler implements ICompiler {
 
         /* Number */
         compiler.statementRules.add(new ASTTransformRule<>(
-                ASTNumberValue.class,
-                node -> new NumberValue(node.jjtGetValueAs(Number.class), node.jjtGetLocation())));
+                ASTIntValue.class,
+                node -> new NumberValue(node.jjtGetValueAs(Long.class), node.jjtGetLocation())));
+
+        /* Number */
+        compiler.statementRules.add(new ASTTransformRule<>(
+                ASTFloatValue.class,
+                node -> new NumberValue(node.jjtGetValueAs(Double.class), node.jjtGetLocation())));
 
         /* Variable */
         compiler.statementRules.add(new ASTTransformRule<>(
@@ -131,7 +138,23 @@ public class Compiler implements ICompiler {
                 node -> new ComparisonFormula(
                         compileStmt.apply(node.jjtGetChild(0)),
                         compileStmt.apply(node.jjtGetChild(1)),
-                        node.jjtGetValueAs(ComparisonOperator.class))
+                        node.jjtGetValueAs(ComparisonOperator.class),
+                        node.jjtGetLocation())
+        ));
+
+        /* Quantifier formula */
+        compiler.statementRules.add(new ASTTransformRule<>(
+           ASTQuantifierFormula.class,
+           node -> {
+               final LimitedQuantifier<Node> quantifier = node.jjtGetValueAs(LimitedQuantifier.class);
+               return new QuantifierFormula(
+                       new LimitedQuantifier<>(
+                               quantifier.getQuantifier(),
+                               quantifier.getVariable(),
+                               quantifier.getSelection(),
+                               compileStmt.apply(quantifier.getSelectionSource())),
+                       compileFormula.apply(node.jjtGetChild(1)));
+           }
         ));
 
         return compiler;

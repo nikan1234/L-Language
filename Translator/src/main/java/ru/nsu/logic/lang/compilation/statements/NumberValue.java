@@ -1,5 +1,6 @@
 package ru.nsu.logic.lang.compilation.statements;
 
+import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.With;
@@ -8,14 +9,23 @@ import ru.nsu.logic.lang.compilation.common.IStatement;
 import ru.nsu.logic.lang.execution.common.ExecutionException;
 import ru.nsu.logic.lang.execution.common.IVirtualMachine;
 
-@AllArgsConstructor
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class NumberValue implements IStatement {
 
-    private Number number;
-
+    private final Number number;
     @With
     @Getter
     private final FileLocation location;
+
+    public NumberValue(final long l, final FileLocation location) {
+        number = l;
+        this.location = location;
+    }
+
+    public NumberValue(final double d, final FileLocation location) {
+        number = d;
+        this.location = location;
+    }
 
     @Override
     public ExecutionResult<IStatement> execute(IVirtualMachine machine) {

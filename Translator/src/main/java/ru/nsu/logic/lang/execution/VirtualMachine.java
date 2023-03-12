@@ -69,7 +69,9 @@ public class VirtualMachine implements IVirtualMachine {
         catch (final ExecutionException e) {
             if (context != null)
                 throw new ExecutionException(
-                        "Error at row " + context.getLocation().getRow() + ": " + e.getMessage());
+                        "Error at " + context.getLocation().getRow() +
+                                ":" + context.getLocation().getColumn() +
+                                ": " + e.getMessage());
             throw e;
         }
     }

@@ -100,25 +100,30 @@ TOKEN : {
   < STR_VAL: "\"" (~["\""])* "\"" >
 }
 
-ASTLLangProgram LLangProgram() #LLangProgram :
-{}
-{
-  (AllDeclarations() | AllStatements())* <EOF>
-  {return jjtThis;}
-}
 
 ////////////////////////////////////////////////////////
 //                       Common                       //
 ////////////////////////////////////////////////////////
 
-void AccessType() # AccessType :
-{Token t;}
+void LLangProgramDeclaration():
+{}
 {
-  (t=<ACCESS_PUBLIC> | t=<ACCESS_PRIVATE> | t=<ACCESS_PROTECTED>)
-  {
-    jjtThis.jjtSetValue(AccessType.valueOf(t.image.toUpperCase()));
-  }
+  FunctionDeclaration() | ClassDeclaration()
 }
+
+void LLangProgramStatement() :
+{}
+{
+  (LOOKAHEAD(2) AssignmentStatement() | FunctionCallStatement() | ReturnStatement()) <END>
+}
+
+ASTLLangProgram LLangProgram() #LLangProgram :
+{}
+{
+  (LLangProgramDeclaration() | LLangProgramStatement())* <EOF>
+  {return jjtThis;}
+}
+
 
 Token Identifier() :
 {Token t;}
@@ -126,90 +131,103 @@ Token Identifier() :
   t=<IDENTIFIER> {return t;}
 }
 
+ASTAccessType AccessType() # AccessType :
+{Token t;}
+{
+  (t=<ACCESS_PUBLIC> | t=<ACCESS_PRIVATE> | t=<ACCESS_PROTECTED>)
+  {
+    jjtThis.jjtSetLocation(new FileLocation(t.beginLine, t.beginColumn));
+    jjtThis.jjtSetValue(AccessType.valueOf(t.image.toUpperCase()));
+    return jjtThis;
+  }
+}
+
 
 ////////////////////////////////////////////////////////
 //                    Declarations                    //
 ////////////////////////////////////////////////////////
 
-void AllDeclarations():
-{}
-{
-  FunctionDeclaration() | ClassDeclaration()
-}
 
-void ArgumentDeclaration() # ArgumentDeclaration :
+ASTArgumentDeclaration ArgumentDeclaration() # ArgumentDeclaration :
 {Token arg;}
 {
   arg=Identifier()
   {
     jjtThis.jjtSetValue(arg.image);
     jjtThis.jjtSetLocation(new FileLocation(arg.beginLine, arg.beginColumn));
+    return jjtThis;
   }
 }
 
-void BodyDeclaration() # BodyDeclaration :
+ASTBodyDeclaration BodyDeclaration() # BodyDeclaration :
 {}
 {
-  (AllStatements())*
+  (LLangProgramStatement())*
+  { return jjtThis; }
 }
 
 // 1. Function Declaration
 
-void FunctionDeclaration() #FunctionDeclaration :
-{Token functionName;}
+ASTFunctionDeclaration FunctionDeclaration() #FunctionDeclaration :
+{Token t; Token functionName;}
 {
-  <FUNCTION> functionName=Identifier()
+  t=<FUNCTION> functionName=Identifier()
   <OPAR> (ArgumentDeclaration() (<COMMA> ArgumentDeclaration())*)? <CPAR>
   <OBR> BodyDeclaration() <CBR>
   {
     jjtThis.jjtSetValue(functionName.image);
-    jjtThis.jjtSetLocation(new FileLocation(functionName.beginLine, functionName.beginColumn));
+    jjtThis.jjtSetLocation(new FileLocation(t.beginLine, t.beginColumn));
+    return jjtThis;
   }
 }
 
 // 2. Class Declaration
 
-void InheritanceDeclaration() # InheritanceDeclaration() :
-{Token className;}
+ASTInheritanceDeclaration InheritanceDeclaration() # InheritanceDeclaration() :
+{Token t; Token className;}
 {
-  <INHERIT> className=Identifier()
+  t=<INHERIT> className=Identifier()
   {
     jjtThis.jjtSetValue(className.image);
-    jjtThis.jjtSetLocation(new FileLocation(className.beginLine, className.beginColumn));
+    jjtThis.jjtSetLocation(new FileLocation(t.beginLine, t.beginColumn));
+    return jjtThis;
   }
 }
 
-void ClassDeclaration() #ClassDeclaration :
-{Token className; Token baseClass = null;}
+ASTClassDeclaration ClassDeclaration() #ClassDeclaration :
+{Token t; Token className; Token baseClass = null;}
 {
-  <CLASS> className=Identifier() [InheritanceDeclaration()]
+  t=<CLASS> className=Identifier() [InheritanceDeclaration()]
   <OBR> (LOOKAHEAD(2) ClassMemberDeclaration() | ClassMethodDeclaration())*
   <CBR>
   {
     jjtThis.jjtSetValue(className.image);
-    jjtThis.jjtSetLocation(new FileLocation(className.beginLine, className.beginColumn));
+    jjtThis.jjtSetLocation(new FileLocation(t.beginLine, t.beginColumn));
+    return jjtThis;
   }
 }
 
-void ClassMemberDeclaration() #ClassMemberDeclaration :
-{Token member;}
+ASTClassMemberDeclaration ClassMemberDeclaration() #ClassMemberDeclaration :
+{Node access; Token member;}
 {
-  AccessType() member=Identifier() <END>
+  access=AccessType() member=Identifier() <END>
   {
     jjtThis.jjtSetValue(member.image);
-    jjtThis.jjtSetLocation(new FileLocation(member.beginLine, member.beginColumn));
+    jjtThis.jjtSetLocation(access.jjtGetLocation());
+    return jjtThis;
   }
 }
 
-void ClassMethodDeclaration() #ClassMethodDeclaration :
-{Token methodName;}
+ASTClassMethodDeclaration ClassMethodDeclaration() #ClassMethodDeclaration :
+{Node access = null; Token t; Token methodName;}
 {
-  [AccessType()] <FUNCTION> methodName=Identifier()
+  [access=AccessType()] t=<FUNCTION> methodName=Identifier()
   <OPAR> (ArgumentDeclaration() (<COMMA> ArgumentDeclaration())*)? <CPAR>
   <OBR> BodyDeclaration() <CBR>
   {
     jjtThis.jjtSetValue(methodName.image);
-    jjtThis.jjtSetLocation(new FileLocation(methodName.beginLine, methodName.beginColumn));
+    jjtThis.jjtSetLocation(access == null ? new FileLocation(t.beginLine, t.beginColumn) : access.jjtGetLocation());
+    return jjtThis;
   }
 }
 
@@ -218,50 +236,44 @@ void ClassMethodDeclaration() #ClassMethodDeclaration :
 //                       Formulas                     //
 ////////////////////////////////////////////////////////
 
-ComparisonOperator CmpOp() :
-{}
+Node Formula() :
+{Node formula;}
 {
-  <EQ> {return ComparisonOperator.EQ;} |
-  <NE> {return ComparisonOperator.NE;} |
-  <LT> {return ComparisonOperator.LT;} |
-  <LE> {return ComparisonOperator.LE;} |
-  <GT> {return ComparisonOperator.GT;} |
-  <GE> {return ComparisonOperator.GE;}
+   (formula=ComparisonFormula() | formula=QuantifierFormula())
+   { return formula; }
 }
 
-Quantifier Quantifier() :
-{}
-{
-  <FORALL> {return Quantifier.FORALL;} |
-  <EXISTS> {return Quantifier.EXISTS;}
-}
 
-SelectionSet SelectionSet() :
-{}
+ASTComparisonFormula ComparisonFormula() # ComparisonFormula :
+{Node lhs; ComparisonOperator cmp;}
 {
-  <IN>       {return SelectionSet.EACH_ELEMENT;} |
-  <SUBSETEQ> {return SelectionSet.EACH_SUBSET;}
-}
-
-void ComparisonFormula() # ComparisonFormula :
-{ComparisonOperator cmp;}
-{
-   Statement() cmp=CmpOp() Statement()
+   lhs=Statement() (<EQ> {cmp=ComparisonOperator.EQ;} |
+                    <NE> {cmp=ComparisonOperator.NE;} |
+                    <LT> {cmp=ComparisonOperator.LT;} |
+                    <LE> {cmp=ComparisonOperator.LE;} |
+                    <GT> {cmp=ComparisonOperator.GT;} |
+                    <GE> {cmp=ComparisonOperator.GE;})
+   Statement()
    {
      jjtThis.jjtSetValue(cmp);
+     jjtThis.jjtSetLocation(lhs.jjtGetLocation());
+     return jjtThis;
    }
 }
 
-void QuantifierFormula() # QuantifierFormula() :
-{Token q;}
-{
-   Quantifier() Identifier() SelectionSet() Statement() Formula()
-}
 
-void Formula() :
-{}
+ASTQuantifierFormula QuantifierFormula() # QuantifierFormula() :
+{Token begin; Token var; LimitedQuantifier.Quantifier q; LimitedQuantifier.Selection sel; Node src;}
 {
-   ComparisonFormula() | QuantifierFormula()
+   (begin=<FORALL> { q=LimitedQuantifier.Quantifier.FORALL; } | begin=<EXISTS> { q=LimitedQuantifier.Quantifier.EXISTS; })
+   var=Identifier()
+   (<IN> { sel=LimitedQuantifier.Selection.EACH_ELEMENT; } | <SUBSETEQ> { sel=LimitedQuantifier.Selection.EACH_SUBSET; })
+   src=Statement() Formula()
+   {
+     jjtThis.jjtSetValue(new LimitedQuantifier<Node>(q, var.image, sel, src));
+     jjtThis.jjtSetLocation(new FileLocation(begin.beginLine, begin.beginColumn));
+     return jjtThis;
+   }
 }
 
 
@@ -271,7 +283,7 @@ void Formula() :
 
 // 1. Cond
 
-void CondStatement() # CondStatement :
+ASTCondStatement CondStatement() # CondStatement :
 {Token t;}
 {
    t=<COND> <OPAR>
@@ -279,6 +291,7 @@ void CondStatement() # CondStatement :
    <CPAR>
    {
      jjtThis.jjtSetLocation(new FileLocation(t.beginLine, t.beginColumn));
+     return jjtThis;
    }
 }
 
@@ -292,56 +305,75 @@ void CondStatement() # CondStatement :
 
 // 1. Types
 
-void NumberVal() #NumberValue :
+ASTIntValue IntVal() #IntValue :
 {Token t;}
 {
-  t=<INT_VAL> { jjtThis.jjtSetValue(Long.valueOf(t.image));   jjtThis.jjtSetLocation(new FileLocation(t.beginLine, t.beginColumn)); } |
-  t=<FLT_VAL> { jjtThis.jjtSetValue(Double.valueOf(t.image)); jjtThis.jjtSetLocation(new FileLocation(t.beginLine, t.beginColumn)); }
+  t=<INT_VAL>
+  {
+    jjtThis.jjtSetValue(Long.valueOf(t.image));
+    jjtThis.jjtSetLocation(new FileLocation(t.beginLine, t.beginColumn));
+    return jjtThis;
+  }
 }
 
-void NullVal() #NullValue :
+ASTFloatValue FloatVal() #FloatValue :
+{Token t;}
+{
+  t=<FLT_VAL>
+  {
+    jjtThis.jjtSetValue(Double.valueOf(t.image));
+    jjtThis.jjtSetLocation(new FileLocation(t.beginLine, t.beginColumn));
+    return jjtThis;
+  }
+}
+
+ASTNullValue NullVal() #NullValue :
 {Token t;}
 {
   t=<NULL>
   {
     jjtThis.jjtSetLocation(new FileLocation(t.beginLine, t.beginColumn));
+    return jjtThis;
   }
 }
 
-void ListVal() #ListValue :
+ASTListValue ListVal() #ListValue :
 {Token t;}
 {
     t = <OAR> (Statement() (<COMMA> Statement())*)? <CAR>
     {
       jjtThis.jjtSetLocation(new FileLocation(t.beginLine, t.beginColumn));
+      return jjtThis;
     }
 }
 
 // 2. Var and member
 
-void MemberStatement() # MemberStatement :
+ASTMemberStatement MemberStatement() # MemberStatement :
 {Token t; Token memberName;}
 {
   t=<THIS> <DOT> memberName=Identifier()
   {
     jjtThis.jjtSetValue(memberName.image);
     jjtThis.jjtSetLocation(new FileLocation(t.beginLine, t.beginColumn));
+    return jjtThis;
   }
 }
 
-void VariableStatement() # VariableStatement :
+ASTVariableStatement VariableStatement() # VariableStatement :
 {Token varName;}
 {
   varName=Identifier()
   {
     jjtThis.jjtSetValue(varName.image);
     jjtThis.jjtSetLocation(new FileLocation(varName.beginLine, varName.beginColumn));
+    return jjtThis;
   }
 }
 
 // 3. Right-value statements (function call, arithmetic expression, e.t.c.)
 
-void FunctionCallStatement() # FunctionCallStatement:
+ASTFunctionCallStatement FunctionCallStatement() # FunctionCallStatement:
 {Token calledFuncName;}
 {
    calledFuncName=Identifier()
@@ -349,56 +381,58 @@ void FunctionCallStatement() # FunctionCallStatement:
    {
      jjtThis.jjtSetValue(calledFuncName.image);
      jjtThis.jjtSetLocation(new FileLocation(calledFuncName.beginLine, calledFuncName.beginColumn));
+     return jjtThis;
    }
 }
 
-void SingleStatement() :
-{}
+Node BaseStatement() :
+{Node stmt;}
 {
-  LOOKAHEAD(2) CondStatement() |
-  LOOKAHEAD(2) FunctionCallStatement() |
-  MemberStatement() | VariableStatement() |
-  ListVal() | NumberVal() | NullVal()
+  (LOOKAHEAD(2) stmt=CondStatement() |
+   LOOKAHEAD(2) stmt=FunctionCallStatement() |
+   stmt=MemberStatement() | stmt=VariableStatement() |
+   stmt=NullVal() | stmt=IntVal() | stmt=FloatVal() | stmt=ListVal())
+  { return stmt; }
 }
 
-void ArithmeticStatement() # ArithmeticStatement :
-{Token op = null; List<String> ops = new ArrayList();}
-{ (                (SingleStatement() | <OPAR> ArithmeticStatement() <CPAR>)
-   (op=<BINARY_OP> (SingleStatement() | <OPAR> ArithmeticStatement() <CPAR>) { ops.add(op.image); })+)
+ASTArithmeticStatement ArithmeticStatement() # ArithmeticStatement :
+{Token op = null; List<String> ops = new ArrayList();
+ Node beginStmt = null; Token beginToken = null; }
+{ (      (beginStmt=BaseStatement() | beginToken = <OPAR> ArithmeticStatement() <CPAR>)
+   (op=<BINARY_OP> (BaseStatement() |              <OPAR> ArithmeticStatement() <CPAR>) { ops.add(op.image); })+)
   {
     jjtThis.jjtSetValue(ops);
+    jjtThis.jjtSetLocation(beginStmt != null ? beginStmt.jjtGetLocation() : new FileLocation(beginToken.beginLine, beginToken.beginColumn));
+    return jjtThis;
   }
 }
 
-void Statement():
-{}
+Node Statement():
+{ Node stmt; }
 {
-  LOOKAHEAD((<OPAR> ArithmeticStatement() <CPAR> | SingleStatement()) <BINARY_OP>) ArithmeticStatement() |
-  SingleStatement()
+  (LOOKAHEAD((<OPAR> ArithmeticStatement() <CPAR> | BaseStatement()) <BINARY_OP>) stmt=ArithmeticStatement() |
+   stmt=BaseStatement())
+  { return stmt; }
 }
 
 // 4. Assignment, return
 
-void AllStatements() :
-{}
+ASTAssignmentStatement AssignmentStatement() # AssignmentStatement :
+{Node target;}
 {
-  (LOOKAHEAD(2) AssignmentStatement() | FunctionCallStatement() | ReturnStatement()) <END>
-}
-
-void AssignmentStatement() # AssignmentStatement :
-{Token t;}
-{
-  (MemberStatement() | VariableStatement()) t = <ASSIGN> Statement()
+  (target=MemberStatement() | target=VariableStatement()) <ASSIGN> Statement()
   {
-    jjtThis.jjtSetLocation(new FileLocation(t.beginLine, t.beginColumn));
+    jjtThis.jjtSetLocation(target.jjtGetLocation());
+    return jjtThis;
   }
 }
 
-void ReturnStatement() # ReturnStatement :
+ASTReturnStatement ReturnStatement() # ReturnStatement :
 {Token t;}
 {
   t = <RETURN> Statement()
   {
     jjtThis.jjtSetLocation(new FileLocation(t.beginLine, t.beginColumn));
+    return jjtThis;
   }
 }

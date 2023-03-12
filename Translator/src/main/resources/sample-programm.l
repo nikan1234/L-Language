@@ -1,53 +1,28 @@
-class Base {}
-
-class Derived extends Base {
-  public a;
-  private b;
-  protected c;
-}
-
-function bar(p) {
-  u := p + 1;
-  return u;
-}
-
-
-function foo(x){
-  y := x * x;
-  return y + bar(x);
-}
-
 function sqr(x) {
-  print(x);
-  return x * x;
+   print(x);
+   return x * x;
 }
 
-rr1 := [foo(1) + 1, bar(2), foo(3)];
-print(rr1);
-rr1 := cons(200, cons(100, rr1));
-print(rr1);
+function makeList(x, y) {
+  l1 := [x];
+  return cons(y, l1);
+}
 
-v0 := nth(rr1, 0);
-v1 := nth(rr1, 1);
-v2 := nth(rr1, 2);
-v3 := nth(rr1, 3);
-v4 := nth(rr1, 4);
+function check(a, b) {
+  print(a, b);
+  return a * b;
+}
 
-print(nil);
+function firstPlusLast(list) {
+    last := len(list) - 1;
+    print(list);
+    return nth(list, 0) + nth(list, last);
+}
 
-print(len(rr1));
-print(v0);
-print(v1);
-print(v2);
-print(v3);
-print(v4);
 
-print(cons([1, 2], [3, 4, 5]));
-
-delta := 5;
-gamma := cond(delta > 0 ==> cond(delta = 2 ==> sqr(10), sqr(30)),
-              forall x in [1, 3, 5] exists y in [1, 2] x > 2 ==> sqr(200),
-              sqr(6));
+gamma := cond(forall x in [1, 2, 3, 5] exists y in makeList(0, 1) check(x, y) = 0 ==> [1000], [0]);
 print(gamma);
 
-
+shift := 1;
+beta := cond(exists x subseteq [0, 1, 2, 3, 4, 6, 6] firstPlusLast(x) = len(x) ==> x, []);
+print(beta);

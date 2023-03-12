@@ -2,6 +2,7 @@ package ru.nsu.logic.lang.compilation.statements;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.Singular;
 import lombok.With;
 import ru.nsu.logic.lang.ast.FileLocation;
 import ru.nsu.logic.lang.compilation.common.IStatement;
@@ -13,6 +14,7 @@ import java.util.List;
 
 @AllArgsConstructor
 public class ListValue implements IStatement {
+    @With
     @Getter
     private List<IStatement> elements;
     @With

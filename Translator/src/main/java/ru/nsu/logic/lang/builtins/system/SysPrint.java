@@ -12,9 +12,7 @@ import java.util.List;
 public class SysPrint extends Builtin {
     @Override
     public IStatement evaluate(final FileLocation location, final List<IStatement> arguments) throws ExecutionException {
-        assertArgumentCount(arguments, 1);
-
-        getMachine().getScreen().print(arguments.get(0));
+        getMachine().getScreen().print(arguments);
         return null;
     }
 }

@@ -39,7 +39,10 @@ public class PipelineEntry implements IPipelineEntry {
     @Override
     public IStatement getInitializedVariable(final String varName) throws ExecutionException {
         if (!varInitializers.containsKey(varName))
-            throw new ExecutionException("Cannot use not initialized variable " + varName);
+            if (tempVariables.contains(varName))
+                throw new ExecutionException("Function returned nothing");
+            else
+                throw new ExecutionException("Cannot use not initialized variable " + varName);
         return varInitializers.get(varName);
     }
 
