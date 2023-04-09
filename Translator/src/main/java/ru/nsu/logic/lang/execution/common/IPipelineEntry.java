@@ -3,7 +3,8 @@ package ru.nsu.logic.lang.execution.common;
 import ru.nsu.logic.lang.compilation.common.IStatement;
 
 public interface IPipelineEntry {
-    String getName();
+
+    IContext getContext();
 
     void initializeVariable(final String varName, final IStatement value);
     IStatement getInitializedVariable(final String varName) throws ExecutionException;

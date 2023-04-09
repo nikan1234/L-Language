@@ -3,22 +3,23 @@ package ru.nsu.logic.lang.execution;
 import org.apache.commons.lang3.RandomStringUtils;
 import ru.nsu.logic.lang.compilation.common.IStatement;
 import ru.nsu.logic.lang.execution.common.ExecutionException;
+import ru.nsu.logic.lang.execution.common.IContext;
 import ru.nsu.logic.lang.execution.common.IPipelineEntry;
 
 import java.util.*;
 
 public class PipelineEntry implements IPipelineEntry {
-    private final String name;
+    private final Context context;
     private final Map<String, IStatement> varInitializers;
     private final Stack<String> tempVariables;
 
     private final List<IStatement> statements;
     private int currentStatementIndex;
 
-    public PipelineEntry(final String name,
+    public PipelineEntry(final Context context,
                          final Map<String, IStatement> varInitializers,
                          final List<IStatement> statements) {
-        this.name = name;
+        this.context = context;
         this.varInitializers = new HashMap<>(varInitializers);
         this.tempVariables = new Stack<>();
 
@@ -27,8 +28,8 @@ public class PipelineEntry implements IPipelineEntry {
     }
 
     @Override
-    public String getName() {
-        return name;
+    public IContext getContext() {
+        return context.withLocation(getCurrentStatement().getLocation());
     }
 
     @Override

@@ -16,9 +16,6 @@ public class CompiledFunction implements ICompiledFunction {
     final private String name;
 
     @Getter
-    final private AccessType accessType;
-
-    @Getter
     @Singular("arg")
     final private List<String> arguments;
 

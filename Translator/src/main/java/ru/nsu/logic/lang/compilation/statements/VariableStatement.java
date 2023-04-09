@@ -16,6 +16,9 @@ public class VariableStatement implements IStatement {
     @Getter
     private final FileLocation location;
 
+    void setValue(final IVirtualMachine machine, final IStatement statement) {
+        machine.getPipeline().getCurrentEntry().initializeVariable(name, statement);
+    }
 
     @Override
     public ExecutionResult<IStatement> execute(IVirtualMachine machine) throws ExecutionException {

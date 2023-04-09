@@ -11,6 +11,6 @@ public interface ICompilationRegistry<T extends ICompilationRegistry.IEntry> {
         FileLocation getLocation();
     }
 
-    void add(final T entry);
+    void add(final T entry) throws CompilationException;
     Optional<T> lookup(final String name);
 }

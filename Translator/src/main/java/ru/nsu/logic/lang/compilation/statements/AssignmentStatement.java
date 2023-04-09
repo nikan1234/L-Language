@@ -26,14 +26,15 @@ public class AssignmentStatement implements IStatement {
             return new ExecutionResult<>(new AssignmentStatement(target, value, getLocation()), false);
 
         if (target instanceof VariableStatement) {
-            final VariableStatement variable = (VariableStatement) target;
-            machine.getPipeline().getCurrentEntry().initializeVariable(variable.getName(), value);
+            ((VariableStatement) target).setValue(machine, value);
             return new ExecutionResult<>(null, true);
         }
+
         if (target instanceof MemberStatement) {
-            MemberStatement member = (MemberStatement) target;
+            ((MemberStatement) target).setValue(machine, value);
             return new ExecutionResult<>(null, true);
         }
+
         throw new ExecutionException("Cannot assign to " + target);
     }
 }

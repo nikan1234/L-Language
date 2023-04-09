@@ -57,6 +57,8 @@ TOKEN : {
   |
   < RETURN: "return" >
   |
+  < NEW: "new" >
+  |
   < ACCESS_PUBLIC: "public" >
   |
   < ACCESS_PRIVATE: "private" >
@@ -114,7 +116,10 @@ void LLangProgramDeclaration():
 void LLangProgramStatement() :
 {}
 {
-  (LOOKAHEAD(2) AssignmentStatement() | FunctionCallStatement() | ReturnStatement()) <END>
+  (LOOKAHEAD(4) AssignmentStatement() |
+   LOOKAHEAD(4) MethodCallStatement() |
+   FunctionCallStatement() |
+   ReturnStatement()) <END>
 }
 
 ASTLLangProgram LLangProgram() #LLangProgram :
@@ -198,7 +203,8 @@ ASTClassDeclaration ClassDeclaration() #ClassDeclaration :
 {Token t; Token className; Token baseClass = null;}
 {
   t=<CLASS> className=Identifier() [InheritanceDeclaration()]
-  <OBR> (LOOKAHEAD(2) ClassMemberDeclaration() | ClassMethodDeclaration())*
+  <OBR>
+      (LOOKAHEAD(2) ClassMemberDeclaration() | ClassMethodDeclaration())*
   <CBR>
   {
     jjtThis.jjtSetValue(className.image);
@@ -350,12 +356,12 @@ ASTListValue ListVal() #ListValue :
 // 2. Var and member
 
 ASTMemberStatement MemberStatement() # MemberStatement :
-{Token t; Token memberName;}
+{Token objectName; Token memberName;}
 {
-  t=<THIS> <DOT> memberName=Identifier()
+  ((objectName=<THIS> | objectName=Identifier()) <DOT> memberName=Identifier())
   {
-    jjtThis.jjtSetValue(memberName.image);
-    jjtThis.jjtSetLocation(new FileLocation(t.beginLine, t.beginColumn));
+    jjtThis.jjtSetValue(objectName.image + '.' + memberName.image);
+    jjtThis.jjtSetLocation(new FileLocation(objectName.beginLine, objectName.beginColumn));
     return jjtThis;
   }
 }
@@ -385,12 +391,38 @@ ASTFunctionCallStatement FunctionCallStatement() # FunctionCallStatement:
    }
 }
 
-Node BaseStatement() :
+ASTMethodCallStatement MethodCallStatement() # MethodCallStatement:
+{Token objectName; Token calledMethodName;}
+{
+  (objectName=<THIS> | objectName=Identifier()) <DOT> calledMethodName=Identifier()
+  <OPAR> (Statement() (<COMMA> Statement())*)? <CPAR>
+  {
+     jjtThis.jjtSetValue(objectName.image + '.' + calledMethodName.image);
+     jjtThis.jjtSetLocation(new FileLocation(objectName.beginLine, objectName.beginColumn));
+     return jjtThis;
+  }
+}
+
+ASTConstructorCallStatement ConstructorCallStatement() # ConstructorCallStatement:
+{Token newToken; Token className;}
+{
+   newToken=<NEW> className=Identifier()
+   <OPAR> (Statement() (<COMMA> Statement())*)? <CPAR>
+   {
+        jjtThis.jjtSetValue(className.image);
+        jjtThis.jjtSetLocation(new FileLocation(newToken.beginLine, newToken.beginColumn));
+        return jjtThis;
+   }
+}
+
+Node SingleStatement() :
 {Node stmt;}
 {
   (LOOKAHEAD(2) stmt=CondStatement() |
    LOOKAHEAD(2) stmt=FunctionCallStatement() |
-   stmt=MemberStatement() | stmt=VariableStatement() |
+   LOOKAHEAD(4) stmt=MethodCallStatement() |
+   LOOKAHEAD(4) stmt=MemberStatement() | stmt=VariableStatement() |
+   stmt=ConstructorCallStatement() |
    stmt=NullVal() | stmt=IntVal() | stmt=FloatVal() | stmt=ListVal())
   { return stmt; }
 }
@@ -398,8 +430,8 @@ Node BaseStatement() :
 ASTArithmeticStatement ArithmeticStatement() # ArithmeticStatement :
 {Token op = null; List<String> ops = new ArrayList();
  Node beginStmt = null; Token beginToken = null; }
-{ (      (beginStmt=BaseStatement() | beginToken = <OPAR> ArithmeticStatement() <CPAR>)
-   (op=<BINARY_OP> (BaseStatement() |              <OPAR> ArithmeticStatement() <CPAR>) { ops.add(op.image); })+)
+{ (      (beginStmt=SingleStatement() | beginToken = <OPAR> ArithmeticStatement() <CPAR>)
+   (op=<BINARY_OP> (SingleStatement() |              <OPAR> ArithmeticStatement() <CPAR>) { ops.add(op.image); })+)
   {
     jjtThis.jjtSetValue(ops);
     jjtThis.jjtSetLocation(beginStmt != null ? beginStmt.jjtGetLocation() : new FileLocation(beginToken.beginLine, beginToken.beginColumn));
@@ -410,8 +442,8 @@ ASTArithmeticStatement ArithmeticStatement() # ArithmeticStatement :
 Node Statement():
 { Node stmt; }
 {
-  (LOOKAHEAD((<OPAR> ArithmeticStatement() <CPAR> | BaseStatement()) <BINARY_OP>) stmt=ArithmeticStatement() |
-   stmt=BaseStatement())
+  (LOOKAHEAD((<OPAR> ArithmeticStatement() <CPAR> | SingleStatement()) <BINARY_OP>) stmt=ArithmeticStatement() |
+   stmt=SingleStatement())
   { return stmt; }
 }
 
@@ -420,7 +452,7 @@ Node Statement():
 ASTAssignmentStatement AssignmentStatement() # AssignmentStatement :
 {Node target;}
 {
-  (target=MemberStatement() | target=VariableStatement()) <ASSIGN> Statement()
+  (LOOKAHEAD(2) target=MemberStatement() | target=VariableStatement()) <ASSIGN> Statement()
   {
     jjtThis.jjtSetLocation(target.jjtGetLocation());
     return jjtThis;

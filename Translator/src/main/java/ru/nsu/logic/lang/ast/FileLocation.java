@@ -1,7 +1,9 @@
 package ru.nsu.logic.lang.ast;
 
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 
+@EqualsAndHashCode
 public class FileLocation implements Comparable<FileLocation> {
     @Getter
     private final int row;
@@ -20,5 +22,10 @@ public class FileLocation implements Comparable<FileLocation> {
         if (row > other.row)
             return 1;
         return Integer.compare(column, other.column);
+    }
+
+    @Override
+    public String toString() {
+        return row + ":" + column;
     }
 }

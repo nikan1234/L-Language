@@ -24,4 +24,14 @@ public class NullValue implements IStatement {
     public String toString() {
         return "nil";
     }
+
+    @Override
+    public boolean equals(final Object obj) {
+        return obj instanceof NullValue;
+    }
+
+    @Override
+    public int hashCode() {
+        return NullValue.class.getName().hashCode();
+    }
 }

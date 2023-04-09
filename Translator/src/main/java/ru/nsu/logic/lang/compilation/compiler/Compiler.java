@@ -60,12 +60,6 @@ public class Compiler implements ICompiler {
                 ASTFloatValue.class,
                 node -> new NumberValue(node.jjtGetValueAs(Double.class), node.jjtGetLocation())));
 
-        /* Variable */
-        compiler.statementRules.add(new ASTTransformRule<>(
-                ASTVariableStatement.class,
-                node -> new VariableStatement(node.jjtGetValueAs(String.class), node.jjtGetLocation())
-        ));
-
         /* List */
         compiler.statementRules.add(new ASTTransformRule<>(
            ASTListValue.class,
@@ -74,10 +68,19 @@ public class Compiler implements ICompiler {
                    node.jjtGetLocation())
         ));
 
-        /* TODO: Member */
+        /* Variable */
+        compiler.statementRules.add(new ASTTransformRule<>(
+                ASTVariableStatement.class,
+                node -> new VariableStatement(node.jjtGetValueAs(String.class), node.jjtGetLocation())
+        ));
+
+        /* Member */
         compiler.statementRules.add(new ASTTransformRule<>(
                 ASTMemberStatement.class,
-                node -> new MemberStatement(node.jjtGetValueAs(String.class), node.jjtGetLocation())
+                node -> new MemberStatement(
+                        node.jjtGetValueAs(String.class).split("\\.")[0],
+                        node.jjtGetValueAs(String.class).split("\\.")[1],
+                        node.jjtGetLocation())
         ));
 
         /* Assignment */
@@ -102,6 +105,25 @@ public class Compiler implements ICompiler {
         compiler.statementRules.add(new ASTTransformRule<>(
                 ASTFunctionCallStatement.class,
                 node -> new FunctionCallStatement(
+                        node.jjtGetValueAs(String.class),
+                        node.jjtGetChildren().stream().map(compileStmt).collect(Collectors.toList()),
+                        node.jjtGetLocation())
+        ));
+
+        /* Method call */
+        compiler.statementRules.add(new ASTTransformRule<>(
+                ASTMethodCallStatement.class,
+                node -> new MethodCallStatement(
+                        node.jjtGetValueAs(String.class).split("\\.")[0],
+                        node.jjtGetValueAs(String.class).split("\\.")[1],
+                        node.jjtGetChildren().stream().map(compileStmt).collect(Collectors.toList()),
+                        node.jjtGetLocation())
+        ));
+
+        /* Object create */
+        compiler.statementRules.add(new ASTTransformRule<>(
+                ASTConstructorCallStatement.class,
+                node -> new ConstructorCallStatement(
                         node.jjtGetValueAs(String.class),
                         node.jjtGetChildren().stream().map(compileStmt).collect(Collectors.toList()),
                         node.jjtGetLocation())
@@ -195,24 +217,97 @@ public class Compiler implements ICompiler {
         throw new RuntimeException("Internal compilation error: rule not found for " + node);
     }
 
-    private CompiledFunction compile(final ASTFunctionDeclaration decl) {
+
+    /// Compile functions
+    private ICompiledFunction compile(final ASTFunctionDeclaration decl) throws CompilationException {
         final CompiledFunction.CompiledFunctionBuilder builder = CompiledFunction.builder();
         builder.name(decl.jjtGetValueAs(String.class));
-        builder.accessType(AccessType.PUBLIC);
         builder.location(decl.jjtGetLocation());
 
         new FilteredVisitor<>(ASTArgumentDeclaration.class).children(decl)
                 .forEach(arg -> builder.arg(arg.jjtGetValueAs(String.class)));
 
-        final List<ASTBodyDeclaration> body = new FilteredVisitor<>(ASTBodyDeclaration.class).children(decl);
-        assert (body.size() == 1);
-
-        for (final Node node : body.get(0).jjtGetChildren())
-            builder.statement((IStatement) compile(node));
+        findBody(decl).jjtGetChildren()
+                .forEach(node -> builder.statement((IStatement) compile(node)));
         return builder.build();
     }
 
-    private CompiledClass compile(final ASTClassDeclaration decl) {
-        return null;
+    /// Compile methods
+    private ICompiledMethod compile(final ASTClassMethodDeclaration decl) throws CompilationException {
+        final CompiledClass.Method.MethodBuilder builder = CompiledClass.Method.builder();
+        builder.name(decl.jjtGetValueAs(String.class));
+        builder.location(decl.jjtGetLocation());
+
+        new FilteredVisitor<>(ASTArgumentDeclaration.class).children(decl)
+                .forEach(arg -> builder.arg(arg.jjtGetValueAs(String.class)));
+
+        findBody(decl).jjtGetChildren()
+                .forEach(node -> builder.statement((IStatement) compile(node)));
+
+        builder.accessType(findAccessType(decl, AccessType.PROTECTED));
+        return builder.build();
+    }
+
+    /// Compile classes
+    private ICompiledClass compile(final ASTClassDeclaration decl) throws CompilationException {
+        final CompiledClass.CompiledClassBuilder builder = CompiledClass.builder();
+        final String className = decl.jjtGetValueAs(String.class);
+
+        builder.name(className);
+        builder.location(decl.jjtGetLocation());
+
+        // Members
+        for (final ASTClassMemberDeclaration member :
+                new FilteredVisitor<>(ASTClassMemberDeclaration.class).children(decl))
+            builder.member(new CompiledClass.Member(
+                    member.jjtGetValueAs(String.class),
+                    findAccessType(member, null),
+                    member.jjtGetLocation()));
+
+
+        // Constructor and members
+        ICompiledMethod compiledConstructor = null;
+        final CompilationRegistry<ICompiledMethod> compiledMethods = new CompilationRegistry<>();
+
+        for (final ASTClassMethodDeclaration method :
+                new FilteredVisitor<>(ASTClassMethodDeclaration.class).children(decl)) {
+
+            final ICompiledMethod compiledMethod = compile(method);
+            if (ICompiledClass.CTOR_NAME.equals(compiledMethod.getName())) {
+                if (compiledConstructor == null)
+                    compiledConstructor = compiledMethod;
+                else
+                    throw new CompilationException(
+                            "Found multiple constructors in class " + className +
+                            ". First constructor: " + compiledConstructor.getLocation() +
+                            " and second: " + compiledMethod.getLocation());
+            }
+            compiledMethods.add(compiledMethod);
+        }
+        return builder.constructor(compiledConstructor).methods(compiledMethods).build();
+    }
+
+    // ---------------- Common utils ----------------
+
+    ASTBodyDeclaration findBody(final Node functionOrMethod) throws CompilationException {
+        final List<ASTBodyDeclaration> body = new FilteredVisitor<>(ASTBodyDeclaration.class).children(functionOrMethod);
+        if (body.size() != 1)
+            throw new CompilationException(body.isEmpty() ? "Wrong function body" : "Ambiguous function body");
+        return body.get(0);
+    }
+
+    AccessType findAccessType(final Node memberOrMethod, final AccessType defaultValue)
+            throws CompilationException {
+        final List<ASTAccessType> access = new FilteredVisitor<>(ASTAccessType.class).children(memberOrMethod);
+        if (access.isEmpty()) {
+            if (defaultValue != null)
+                return defaultValue;
+            else
+                throw new CompilationException("Access type required");
+        }
+        else if (access.size() == 1)
+            return access.get(0).jjtGetValueAs(AccessType.class);
+
+        throw new CompilationException("Ambiguous access type");
     }
 }

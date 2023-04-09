@@ -10,11 +10,9 @@ public class Pipeline implements IPipeline {
     private final Stack<IPipelineEntry> pipeline = new Stack<>();
 
     @Override
-    public IContext getContext() {
+    public IContext getCurrentContext() {
         final IPipelineEntry entry = getCurrentEntry();
-        return new Context(
-                entry.getName(),
-                entry.getCurrentStatement().getLocation());
+        return entry.getContext();
     }
 
     @Override

@@ -17,8 +17,8 @@
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
-            <version>1.18.24</version>
-            <scope>provided</scope>
+            <version>1.18.22</version>
+            <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>net.sourceforge.argparse4j</groupId>

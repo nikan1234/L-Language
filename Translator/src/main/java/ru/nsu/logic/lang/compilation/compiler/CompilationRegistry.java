@@ -1,5 +1,6 @@
 package ru.nsu.logic.lang.compilation.compiler;
 
+import ru.nsu.logic.lang.compilation.common.CompilationException;
 import ru.nsu.logic.lang.compilation.common.ICompilationRegistry;
 
 import java.util.LinkedList;
@@ -11,7 +12,9 @@ public class CompilationRegistry<T extends ICompilationRegistry.IEntry> implemen
     final private List<T> registry = new LinkedList<>();
 
     @Override
-    public void add(final T entry) {
+    public void add(final T entry) throws CompilationException {
+        if (lookup(entry.getName()).isPresent())
+            throw new CompilationException("Function " + entry.getName() + " previously declared");
         registry.add(entry);
     }
 

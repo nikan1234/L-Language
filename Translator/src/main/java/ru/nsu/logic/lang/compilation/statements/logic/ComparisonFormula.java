@@ -25,15 +25,20 @@ public class ComparisonFormula implements IFormula {
   @Setter
   private FileLocation location;
 
-  private static final Map<ComparisonOperator, BiFunction<Double, Double, Boolean>> OP_TO_FUNCTION;
+  private static final Map<ComparisonOperator, BiFunction<Double, Double, Boolean>> NUMERIC_OP_TO_FUNCTION;
+  private static final Map<ComparisonOperator, BiFunction<Object, Object, Boolean>> OBJECT_OP_TO_FUNCTION;
   static {
-    OP_TO_FUNCTION =  new HashMap<>();
-    OP_TO_FUNCTION.put(ComparisonOperator.EQ, Double::equals);
-    OP_TO_FUNCTION.put(ComparisonOperator.NE, (l, r) -> !l.equals(r));
-    OP_TO_FUNCTION.put(ComparisonOperator.LT, (l, r) -> l < r);
-    OP_TO_FUNCTION.put(ComparisonOperator.LE, (l, r) -> l <= r);
-    OP_TO_FUNCTION.put(ComparisonOperator.GT, (l, r) -> l > r);
-    OP_TO_FUNCTION.put(ComparisonOperator.GE, (l, r) -> l >= r);
+    NUMERIC_OP_TO_FUNCTION =  new HashMap<>();
+    NUMERIC_OP_TO_FUNCTION.put(ComparisonOperator.EQ, Double::equals);
+    NUMERIC_OP_TO_FUNCTION.put(ComparisonOperator.NE, (l, r) -> !l.equals(r));
+    NUMERIC_OP_TO_FUNCTION.put(ComparisonOperator.LT, (l, r) -> l < r);
+    NUMERIC_OP_TO_FUNCTION.put(ComparisonOperator.LE, (l, r) -> l <= r);
+    NUMERIC_OP_TO_FUNCTION.put(ComparisonOperator.GT, (l, r) -> l > r);
+    NUMERIC_OP_TO_FUNCTION.put(ComparisonOperator.GE, (l, r) -> l >= r);
+
+    OBJECT_OP_TO_FUNCTION = new HashMap<>();
+    OBJECT_OP_TO_FUNCTION.put(ComparisonOperator.EQ, Object::equals);
+    OBJECT_OP_TO_FUNCTION.put(ComparisonOperator.NE, (l, r) -> !l.equals(r));
   }
 
   @Override
@@ -48,8 +53,21 @@ public class ComparisonFormula implements IFormula {
       return new ExecutionResult<>(
               new ComparisonFormula(left, rightExecuted.getValue(), operator, location), false);
 
-    /// Evaluate logical expression
-    final boolean cmpResult = OP_TO_FUNCTION.get(operator)
+    /// If one of operands is null or list then only = and != operators are supported
+    if (!(leftExecuted.getValue() instanceof NumberValue) ||
+        !(rightExecuted.getValue() instanceof NumberValue)) {
+      final BiFunction<Object, Object, Boolean> op = OBJECT_OP_TO_FUNCTION.getOrDefault(operator, null);
+      if (op == null)
+        throw new ExecutionException("Unsupported operation");
+
+      return new ExecutionResult<>(new BooleanValue(op.apply(
+              leftExecuted.getValue(),
+              rightExecuted.getValue())), true);
+    }
+
+
+    /// Evaluate logical expression for numbers
+    final boolean cmpResult = NUMERIC_OP_TO_FUNCTION.get(operator)
             .apply(asDouble(leftExecuted.getValue()), asDouble(rightExecuted.getValue()));
     return new ExecutionResult<>(new BooleanValue(cmpResult), true);
   }

@@ -1,9 +1,6 @@
 package ru.nsu.logic.lang.compilation.statements;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.Singular;
-import lombok.With;
+import lombok.*;
 import ru.nsu.logic.lang.ast.FileLocation;
 import ru.nsu.logic.lang.compilation.common.IStatement;
 import ru.nsu.logic.lang.execution.common.ExecutionException;
@@ -13,12 +10,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 @AllArgsConstructor
+@EqualsAndHashCode
 public class ListValue implements IStatement {
     @With
     @Getter
     private List<IStatement> elements;
     @With
     @Getter
+    @EqualsAndHashCode.Exclude
     private final FileLocation location;
 
 

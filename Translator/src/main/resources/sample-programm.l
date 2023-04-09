@@ -1,3 +1,25 @@
+function check(a, b) {
+  print(a, b);
+  return a * b;
+}
+
+
+class A {
+   public x;
+   private y;
+
+   public function foo() {
+      print(this.y);
+   }
+
+   function __constructor__(x, y) {
+        this.x := check(x, y);
+        this.y := y;
+        this.foo();
+   }
+}
+
+
 function sqr(x) {
    print(x);
    return x * x;
@@ -8,10 +30,6 @@ function makeList(x, y) {
   return cons(y, l1);
 }
 
-function check(a, b) {
-  print(a, b);
-  return a * b;
-}
 
 function firstPlusLast(list) {
     last := len(list) - 1;
@@ -25,4 +43,8 @@ print(gamma);
 
 shift := 1;
 beta := cond(exists x subseteq [0, 1, 2, 3, 4, 6, 6] firstPlusLast(x) = len(x) ==> x, []);
-print(beta);
+
+
+a := new A(6, 8);
+print(a.x);
+a.foo();
