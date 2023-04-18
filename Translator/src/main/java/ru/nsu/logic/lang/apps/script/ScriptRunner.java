@@ -1,4 +1,4 @@
-package ru.nsu.logic.lang;
+package ru.nsu.logic.lang.apps.local;
 
 import net.sourceforge.argparse4j.ArgumentParsers;
 import net.sourceforge.argparse4j.inf.ArgumentParser;
@@ -11,16 +11,17 @@ import ru.nsu.logic.lang.compilation.common.CompilationException;
 import ru.nsu.logic.lang.compilation.compiler.Compiler;
 import ru.nsu.logic.lang.execution.ScriptVirtualMachine;
 import ru.nsu.logic.lang.execution.common.ExecutionException;
+import ru.nsu.logic.lang.execution.common.IVirtualMachine;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 
-public class Main {
+public class ScriptRunner {
     public static void main(String[] args) {
         final ArgumentParser parser = ArgumentParsers
-                .newFor("L* Program translator")
+                .newFor("L* Program executor")
                 .build().defaultHelp(true);
         parser.addArgument("-i", "--input-file").required(true);
 
@@ -30,7 +31,7 @@ public class Main {
                 final ASTLLangProgram ast = new LStatement(in).LLangProgram();
 
                 final Compiler compiler = Compiler.create();
-                final ScriptVirtualMachine machine = new ScriptVirtualMachine(compiler.compile(ast));
+                final IVirtualMachine machine = new ScriptVirtualMachine(compiler.compile(ast));
                 machine.run();
 
             } catch (final FileNotFoundException | ParseException | CompilationException | ExecutionException e) {

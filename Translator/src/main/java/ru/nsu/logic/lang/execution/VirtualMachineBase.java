@@ -1,7 +1,6 @@
 package ru.nsu.logic.lang.execution;
 
 import ru.nsu.logic.lang.compilation.common.*;
-import ru.nsu.logic.lang.compilation.compiler.CompiledProgram;
 import ru.nsu.logic.lang.compilation.statements.*;
 import ru.nsu.logic.lang.execution.common.*;
 
@@ -9,30 +8,21 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-public class VirtualMachine implements IVirtualMachine {
+abstract class VirtualMachineBase implements IVirtualMachine {
 
     private final ICompilationRegistry<ICompiledClass> compiledClasses;
     private final ICompilationRegistry<ICompiledFunction> compiledFunctions;
     private final IScreen screen = new Screen();
     private final IPipeline pipeline = new Pipeline();
 
-    public static VirtualMachine create(final CompiledProgram compiledProgram) {
-        final VirtualMachine machine = new VirtualMachine(
-                compiledProgram.getCompiledClasses(),
-                compiledProgram.getCompiledFunctions());
 
-        machine.getPipeline().pushEntry(
-                new PipelineEntry(Context.CreateForGlobal(), new HashMap<>(), compiledProgram.getStatements()));
-
-        return machine;
+    protected VirtualMachineBase(final ICompiledProgram compiledProgram) {
+        this.compiledClasses = compiledProgram.getCompiledClasses();
+        this.compiledFunctions = compiledProgram.getCompiledFunctions();
     }
 
-    private VirtualMachine(final ICompilationRegistry<ICompiledClass> compiledClasses,
-                           final ICompilationRegistry<ICompiledFunction> compiledFunctions) {
-        this.compiledClasses = compiledClasses;
-        this.compiledFunctions = compiledFunctions;
-    }
-
+    protected abstract void initializePipeline(final IPipeline pipeline) throws ExecutionException;
+    protected void shutdown() throws ExecutionException {}
 
     @Override
     public IScreen getScreen() {
@@ -48,10 +38,12 @@ public class VirtualMachine implements IVirtualMachine {
     public void run() throws ExecutionException {
         IContext context = null;
         try {
+            initializePipeline(pipeline);
+
             while (!pipeline.empty()) {
                 final IPipelineEntry currentEntry = pipeline.getCurrentEntry();
                 if (currentEntry.completed()) {
-                    pipeline.popEntry();
+                    onPipelineRollback(new NullValue(null));
                     continue;
                 }
                 context = pipeline.getCurrentContext();
@@ -61,6 +53,7 @@ public class VirtualMachine implements IVirtualMachine {
                 if (result.isCompleted())
                     currentEntry.nextStatement();
             }
+            shutdown();
         }
         catch (final ExecutionException e) {
             if (context != null)
@@ -76,6 +69,9 @@ public class VirtualMachine implements IVirtualMachine {
     public void onPipelineRollback(final IStatement statement) {
         /// Remove entry from execution stack
         pipeline.popEntry();
+        if (pipeline.empty())
+            return;
+
         if (pipeline.getCurrentEntry().hasTempVariable())
             pipeline.getCurrentEntry().initializeVariable(
                     pipeline.getCurrentEntry().popTempVariable(),
@@ -132,18 +128,19 @@ public class VirtualMachine implements IVirtualMachine {
         if (!compiledClass.isPresent())
             throw new ExecutionException("Class not found: " + className);
 
-        final ICompiledMethod method = compiledClass.get().getMethod(methodName);
-        if (method == null)
+        final Optional<ICompiledMethod> method = compiledClass.get().getMethod(methodName);
+        if (!method.isPresent())
             throw new ExecutionException("Method not found: " + methodName);
-        if (method.getLocation().compareTo(context.getLocation()) > 0)
+        if (method.get().getLocation().compareTo(context.getLocation()) > 0)
             throw new ExecutionException("Function " + methodName + " is not declared yet");
-        if (!callStmt.getAccessMask().contains(method.getAccessType()))
-            throw new ExecutionException("Cannot access " + methodName + " which declared " + method.getAccessType());
+        if (!callStmt.getAccessMask().contains(method.get().getAccessType()))
+            throw new ExecutionException("Cannot access " + methodName + " which declared " + method.get().getAccessType());
 
         final String diagnosticMsg = className + '.' + methodName;
         final IStatement retVal = extendPipeline(callStmt,
                 Context.CreateForClassMethod(className, methodName),
-                prepareArgs(method.getArguments(), callStmt.getCallParameters(), diagnosticMsg), method.getBody());
+                prepareArgs(method.get().getArguments(), callStmt.getCallParameters(), diagnosticMsg),
+                method.get().getBody());
 
         pipeline.getCurrentEntry().initializeVariable("this", object);
         return retVal;
@@ -160,8 +157,8 @@ public class VirtualMachine implements IVirtualMachine {
         if (compiledClass.get().getLocation().compareTo(context.getLocation()) > 0)
             throw new ExecutionException("Class " + compiledClass + " is not declared yet");
 
-        final ICompiledMethod constructor = compiledClass.get().getConstructor();
-        if (constructor == null)
+        final Optional<ICompiledMethod> constructor = compiledClass.get().getConstructor();
+        if (!constructor.isPresent())
             /// Default constructor, pipeline not extended actually
             return new ObjectValue(compiledClass.get(), createStmt.getLocation());
 
@@ -173,14 +170,14 @@ public class VirtualMachine implements IVirtualMachine {
         final ObjectValue object = new ObjectValue(compiledClass.get(), createStmt.getLocation());
 
         /// "Trick" to return value from constructor
-        final List<IStatement> body = new LinkedList<>(constructor.getBody());
+        final List<IStatement> body = new LinkedList<>(constructor.get().getBody());
         body.add(new ReturnStatement(
-                object, body.isEmpty() ? constructor.getLocation() : body.get(body.size() - 1).getLocation()));
+                object, body.isEmpty() ? constructor.get().getLocation() : body.get(body.size() - 1).getLocation()));
 
         final String diagnosticMsg = className + '.' + ICompiledClass.CTOR_NAME;
         final IStatement retVal = extendPipeline(createStmt,
                 Context.CreateForClassMethod(className, ICompiledClass.CTOR_NAME),
-                prepareArgs(constructor.getArguments(), createStmt.getCallParameters(), diagnosticMsg), body);
+                prepareArgs(constructor.get().getArguments(), createStmt.getCallParameters(), diagnosticMsg), body);
 
         pipeline.getCurrentEntry().initializeVariable("this", object);
         return retVal;
@@ -194,23 +191,10 @@ public class VirtualMachine implements IVirtualMachine {
         /// TODO: заменить эту залупу на пацанский log4j
         ///System.out.println("[INFO] Extended pipeline for " + context + " from " + pipeline.getCurrentContext());
 
-        /// False if function result is not assigned to any var
-        final boolean functionResultUnused = isCallResultUnused(initiator);
-        final String uniqueName = functionResultUnused ? null : pipeline.getCurrentEntry().pushTempVariable();
-
+        final String uniqueName = pipeline.getCurrentEntry().pushTempVariable();
         final IPipelineEntry entry = new PipelineEntry(context, varInitializers, statements);
         pipeline.pushEntry(entry);
-        return functionResultUnused ? null : new VariableStatement(uniqueName, initiator.getLocation());
-    }
-
-    private boolean isCallResultUnused(final IStatement callStmt) {
-        final IStatement topLevelStmt = pipeline.getCurrentEntry().getCurrentStatement();
-        if (topLevelStmt instanceof FunctionCallStatement ||
-            topLevelStmt instanceof MethodCallStatement ||
-            topLevelStmt instanceof ConstructorCallStatement)
-            return callStmt.equals(topLevelStmt);
-
-        return false;
+        return new VariableStatement(uniqueName, initiator.getLocation());
     }
 
     private Map<String, IStatement> prepareArgs(final List<String> argNames,

@@ -9,6 +9,7 @@ import ru.nsu.logic.lang.compilation.common.*;
 import ru.nsu.logic.lang.ast.FileLocation;
 
 import java.util.List;
+import java.util.Optional;
 
 
 @Builder
@@ -47,12 +48,16 @@ public class CompiledClass  implements ICompiledClass {
     @Getter
     @Singular("member")
     final private List<IMember> members;
-    @Getter
     final private ICompiledMethod constructor; // shortcut to ctor stored in 'methods'
     final private ICompilationRegistry<ICompiledMethod> methods;
 
     @Override
-    public ICompiledMethod getMethod(String name) {
-        return methods.lookup(name).orElse(null);
+    public Optional<ICompiledMethod> getConstructor() {
+        return constructor != null ? Optional.of(constructor) : Optional.empty();
+    }
+
+    @Override
+    public Optional<ICompiledMethod> getMethod(String name) {
+        return methods.lookup(name);
     }
 }

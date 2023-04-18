@@ -41,6 +41,11 @@ public class ObjectValue implements IStatement {
                 this.members.put(m.getName(), new Member(m.getAccessType(), new NullValue(location))));
     }
 
+    @Override
+    public ExecutionResult<IStatement> execute(IVirtualMachine machine) throws ExecutionException {
+        return new ExecutionResult<>(this, true);
+    }
+
     public IStatement getMemberValue(final String memberName,
                                      final EnumSet<AccessType> accessMask) throws ExecutionException {
         return accessMember(memberName, accessMask).value;
@@ -52,19 +57,19 @@ public class ObjectValue implements IStatement {
         accessMember(memberName, accessMask).value = statement;
     }
 
-    @Override
-    public ExecutionResult<IStatement> execute(IVirtualMachine machine) throws ExecutionException {
-        return new ExecutionResult<>(this, true);
-    }
-
-    private Member accessMember(final String memberName,
-                                final EnumSet<AccessType> accessMask) throws ExecutionException {
+    public void validateAccess(final String memberName,
+                               final EnumSet<AccessType> accessMask) throws ExecutionException {
         final Member member = this.members.get(memberName);
         if (member == null)
             throw new ExecutionException("Member" + memberName + " not found");
 
         if (!accessMask.contains(member.accessType))
             throw new ExecutionException("Cannot access " + memberName + " which declared " + member.accessType);
-        return member;
+    }
+
+    private Member accessMember(final String memberName,
+                                final EnumSet<AccessType> accessMask) throws ExecutionException {
+        validateAccess(memberName, accessMask);
+        return this.members.get(memberName);
     }
 }
