@@ -1,27 +1,28 @@
 package ru.nsu.logic.lang.execution;
 
-import lombok.AllArgsConstructor;
-import ru.nsu.logic.lang.compilation.common.ICompiledClass;
-import ru.nsu.logic.lang.compilation.common.ICompiledMethod;
-import ru.nsu.logic.lang.compilation.common.ICompiledProgram;
 import ru.nsu.logic.lang.compilation.common.IStatement;
-import ru.nsu.logic.lang.execution.blockchain.SmartContractInstance;
-import ru.nsu.logic.lang.execution.blockchain.common.ITransaction;
-import ru.nsu.logic.lang.execution.blockchain.common.ITransactionInfo;
+import ru.nsu.logic.lang.execution.blockchain.common.*;
 import ru.nsu.logic.lang.execution.common.ExecutionException;
 import ru.nsu.logic.lang.execution.common.IPipeline;
 
 import java.util.HashMap;
-import java.util.Optional;
+import java.util.Map;
+
 
 public class SmartContractVirtualMachine extends VirtualMachineBase {
-
-    private final ICompiledProgram program;
+    private final ISmartContractInstance instance;
     private final ITransaction transaction;
 
-    public SmartContractVirtualMachine(final ICompiledProgram program, final ITransaction transaction) {
-        super(program);
-        this.program = program;
+
+    public SmartContractVirtualMachine(final ITransaction transaction) {
+        this(transaction, transaction.getBlockchainBlock().getBlockchainAPI()
+                .findSmartContract(transaction.getTransactionInfo())
+                .orElseThrow(RuntimeException::new));
+    }
+
+    private SmartContractVirtualMachine(final ITransaction transaction, final ISmartContractInstance instance) {
+        super(instance.getContractProgram());
+        this.instance = instance;
         this.transaction = transaction;
     }
 
@@ -32,22 +33,17 @@ public class SmartContractVirtualMachine extends VirtualMachineBase {
     }
 
     @Override
-    protected void initializePipeline(IPipeline pipeline) throws ExecutionException {
+    protected void initializePipeline(IPipeline pipeline) {
         final ITransactionInfo info = transaction.getTransactionInfo();
 
-        final Optional<ICompiledClass> compiledClass = program.getCompiledClasses().lookup(info.getContractName());
-        if (!compiledClass.isPresent())
-            throw new ExecutionException("Smart contract with name " + info.getContractName() + " not found");
+        final Map<String, IStatement> init = new HashMap<>(info.getParameters());
+        init.put("this", instance.getInstance(transaction));
 
-        final Optional<ICompiledMethod> method = compiledClass.get().getMethod(info.getMethodName());
-        if (!method.isPresent())
-            throw new ExecutionException("Method with name " + info.getMethodName() + " not found");
+        final Context context = Context.CreateForClassMethod(
+                info.getSmartContractId().getContractName(),
+                info.getSmartContractMethodId().getMethodName());
 
-        final HashMap<String, IStatement> init = new HashMap<>(info.getParameters());
-        init.put("this", new SmartContractInstance(compiledClass.get(), transaction));
-        pipeline.pushEntry(new PipelineEntry(
-                Context.CreateForClassMethod(info.getContractName(), info.getMethodName()),
-                init, method.get().getBody()));
+        pipeline.pushEntry(new PipelineEntry(context, init, instance.getContractMethod().getBody()));
     }
 
     @Override

@@ -2,7 +2,7 @@ package ru.nsu.logic.lang.compilation.statements.logic;
 
 import ru.nsu.logic.lang.common.LimitedQuantifier;
 import ru.nsu.logic.lang.compilation.common.IStatement;
-import ru.nsu.logic.lang.compilation.statements.ListValue;
+import ru.nsu.logic.lang.compilation.statements.ListValueStatement;
 import ru.nsu.logic.lang.execution.common.ExecutionException;
 import ru.nsu.logic.lang.execution.common.IVirtualMachine;
 
@@ -24,17 +24,17 @@ public class QuantifierFormula implements IFormula {
     }
 
     static public class ForeachProvider implements IValuesProvider {
-        private final ListValue source;
+        private final ListValueStatement source;
         private final int currentIndex;
 
-        private ForeachProvider(final ListValue source, final int currentIndex) {
+        private ForeachProvider(final ListValueStatement source, final int currentIndex) {
             this.source = source;
             this.currentIndex = currentIndex;
         }
 
         public static ForeachProvider create(final IStatement statement) throws ExecutionException {
             assertIsList(statement);
-            return new ForeachProvider((ListValue)statement, -1);
+            return new ForeachProvider((ListValueStatement)statement, -1);
         }
 
         @Override
@@ -54,10 +54,10 @@ public class QuantifierFormula implements IFormula {
     }
 
     static public class SubseteqProvider implements IValuesProvider {
-        private final ListValue source;
-        private final ListValue currentSubseteq;
+        private final ListValueStatement source;
+        private final ListValueStatement currentSubseteq;
 
-        private SubseteqProvider(final ListValue source, final ListValue currentSubseteq) {
+        private SubseteqProvider(final ListValueStatement source, final ListValueStatement currentSubseteq) {
             this.source = source;
             this.currentSubseteq = currentSubseteq;
         }
@@ -65,8 +65,8 @@ public class QuantifierFormula implements IFormula {
         public static SubseteqProvider create(final IStatement statement) throws ExecutionException {
             assertIsList(statement);
             return new SubseteqProvider(
-                    (ListValue)statement,
-                    new ListValue(new ArrayList<>(), statement.getLocation()));
+                    (ListValueStatement)statement,
+                    new ListValueStatement(new ArrayList<>(), statement.getLocation()));
         }
 
         @Override
@@ -156,7 +156,7 @@ public class QuantifierFormula implements IFormula {
     }
 
     private static void assertIsList(final IStatement statement) throws ExecutionException {
-        if (!(statement instanceof ListValue))
+        if (!(statement instanceof ListValueStatement))
             throw new ExecutionException("Expected list");
     }
 

@@ -1,37 +1,42 @@
 package ru.nsu.logic.lang.execution.blockchain;
 
-import lombok.AllArgsConstructor;
 import lombok.Getter;
-import ru.nsu.logic.lang.compilation.common.IStatement;
-import ru.nsu.logic.lang.execution.blockchain.common.IBlockchainBlock;
-import ru.nsu.logic.lang.execution.blockchain.common.ITransaction;
-import ru.nsu.logic.lang.execution.blockchain.common.ITransactionInfo;
+import ru.nsu.logic.lang.execution.blockchain.common.*;
 
-@AllArgsConstructor
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+
 public class Transaction implements ITransaction {
-
-    private final IBlockchainBlock block;
     @Getter
     private final ITransactionInfo transactionInfo;
+    @Getter
+    private final IBlockchainBlock blockchainBlock;
+    @Getter
+    private final Map<ISmartContractMemberId, ISmartContractMember> storage;
 
+    public Transaction(final ITransactionInfo transactionInfo, final IBlockchainBlock blockchainBlock) {
+        this.transactionInfo = transactionInfo;
+        this.blockchainBlock = blockchainBlock;
+        this.storage = new HashMap<>();
+    }
 
     @Override
-    public void startTransaction() {
-
-    }
+    public void startTransaction() {}
 
     @Override
     public void endTransaction() {
-        block.addTransaction(this);
+        blockchainBlock.addTransaction(this);
     }
 
     @Override
-    public IStatement getContractMember(String name) {
-        return null;
+    public void store(final ISmartContractMember member) {
+        storage.put(member.getId(), member);
     }
 
     @Override
-    public void setContractMember(String name, IStatement statement) {
-
+    public Optional<ISmartContractMember> lookup(final ISmartContractMemberId memberId) {
+        final ISmartContractMember member = storage.get(memberId);
+        return member != null ? Optional.of(member) : Optional.empty();
     }
 }

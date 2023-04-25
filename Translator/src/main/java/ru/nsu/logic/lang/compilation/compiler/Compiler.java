@@ -48,22 +48,22 @@ public class Compiler implements ICompiler {
         /* Nil */
         compiler.statementRules.add(new ASTTransformRule<>(
                 ASTNullValue.class,
-                node -> new NullValue(node.jjtGetLocation())));
+                node -> new NullValueStatement(node.jjtGetLocation())));
 
         /* Number */
         compiler.statementRules.add(new ASTTransformRule<>(
                 ASTIntValue.class,
-                node -> new NumberValue(node.jjtGetValueAs(Long.class), node.jjtGetLocation())));
+                node -> new NumberValueStatement(node.jjtGetValueAs(Long.class), node.jjtGetLocation())));
 
         /* Number */
         compiler.statementRules.add(new ASTTransformRule<>(
                 ASTFloatValue.class,
-                node -> new NumberValue(node.jjtGetValueAs(Double.class), node.jjtGetLocation())));
+                node -> new NumberValueStatement(node.jjtGetValueAs(Double.class), node.jjtGetLocation())));
 
         /* List */
         compiler.statementRules.add(new ASTTransformRule<>(
            ASTListValue.class,
-           node -> new ListValue(
+           node -> new ListValueStatement(
                    node.jjtGetChildren().stream().map(compileStmt).collect(Collectors.toList()),
                    node.jjtGetLocation())
         ));

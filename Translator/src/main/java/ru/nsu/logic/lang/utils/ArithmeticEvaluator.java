@@ -4,7 +4,7 @@ import net.objecthunter.exp4j.Expression;
 import net.objecthunter.exp4j.ExpressionBuilder;
 import ru.nsu.logic.lang.ast.FileLocation;
 import ru.nsu.logic.lang.compilation.common.IStatement;
-import ru.nsu.logic.lang.compilation.statements.NumberValue;
+import ru.nsu.logic.lang.compilation.statements.NumberValueStatement;
 
 import java.util.HashMap;
 import java.util.List;
@@ -22,13 +22,13 @@ public class ArithmeticEvaluator {
 
         final StringBuilder expression = new StringBuilder(generateOperandName(0));
         final Map<String, Double> varsToVals = new HashMap<>();
-        varsToVals.put(generateOperandName(0), ((NumberValue)operands.get(0)).asDouble());
+        varsToVals.put(generateOperandName(0), ((NumberValueStatement)operands.get(0)).asDouble());
 
         for (int i = 0; i < operators.size(); ++i) {
             final String varName = generateOperandName(i + 1);
             expression.append(operators.get(i));
             expression.append(varName);
-            varsToVals.put(varName, ((NumberValue)operands.get(i + 1)).asDouble());
+            varsToVals.put(varName, ((NumberValueStatement)operands.get(i + 1)).asDouble());
         }
 
         this.expression = new ExpressionBuilder(expression.toString())
@@ -45,8 +45,8 @@ public class ArithmeticEvaluator {
         final double evaluated =  expression.evaluate();
 
         if ((evaluated == Math.floor(evaluated)) && !Double.isInfinite(evaluated))
-            return new NumberValue((int) evaluated, location);
-        return new NumberValue(evaluated, location);
+            return new NumberValueStatement((int) evaluated, location);
+        return new NumberValueStatement(evaluated, location);
     }
 
     private static String generateOperandName(final int operandNumber) {
@@ -54,7 +54,7 @@ public class ArithmeticEvaluator {
     }
 
     private static void assertNumberTypes(List<IStatement> args){
-        if (!args.stream().allMatch(a -> (a instanceof NumberValue)))
+        if (!args.stream().allMatch(a -> (a instanceof NumberValueStatement)))
             throw new IllegalArgumentException("Expected numeric values");
     }
 }

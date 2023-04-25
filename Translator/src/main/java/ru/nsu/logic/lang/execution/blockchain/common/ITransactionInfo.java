@@ -8,7 +8,7 @@ import java.util.UUID;
 
 public interface ITransactionInfo {
     UUID getIdentifier();
-    String getContractName();
-    String getMethodName();
+    ISmartContractId getSmartContractId();
+    ISmartContractMethodId getSmartContractMethodId();
     Map<String, IStatement> getParameters();
 }

@@ -1,14 +1,15 @@
 package ru.nsu.logic.lang.execution.blockchain.common;
 
-import ru.nsu.logic.lang.compilation.common.IStatement;
 
+import java.util.Optional;
 
 public interface ITransaction {
     ITransactionInfo getTransactionInfo();
+    IBlockchainBlock getBlockchainBlock();
 
     void startTransaction();
     void endTransaction();
 
-    IStatement getContractMember(final String name);
-    void setContractMember(final String name, final IStatement statement);
+    Optional<ISmartContractMember> lookup(final ISmartContractMemberId memberId);
+    void store(final ISmartContractMember member);
 }

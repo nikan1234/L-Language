@@ -9,7 +9,7 @@ import ru.nsu.logic.lang.execution.common.IVirtualMachine;
 import ru.nsu.logic.lang.ast.FileLocation;
 
 @AllArgsConstructor
-public class NullValue implements IStatement {
+public class NullValueStatement implements IStatement {
 
     @With
     @Getter
@@ -27,11 +27,11 @@ public class NullValue implements IStatement {
 
     @Override
     public boolean equals(final Object obj) {
-        return obj instanceof NullValue;
+        return obj instanceof NullValueStatement;
     }
 
     @Override
     public int hashCode() {
-        return NullValue.class.getName().hashCode();
+        return NullValueStatement.class.getName().hashCode();
     }
 }

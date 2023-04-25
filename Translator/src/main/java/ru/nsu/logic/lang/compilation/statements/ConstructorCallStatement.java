@@ -27,7 +27,7 @@ public class ConstructorCallStatement implements IStatement {
     public ExecutionResult<IStatement> execute(final IVirtualMachine machine) throws ExecutionException {
         final IStatement retVal = machine.onPipelineExtend(this);
 
-        final boolean completed = retVal == null || retVal instanceof ObjectValue;
+        final boolean completed = retVal == null || retVal instanceof ObjectValueStatement;
         return new ExecutionResult<>(retVal, completed);
     }
 }

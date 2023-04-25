@@ -40,11 +40,11 @@ public class MemberStatement implements IStatement {
         return "this".equals(objectName) ? AccessType.Masks.ALL : AccessType.Masks.ONLY_PUBLIC;
     }
 
-    private ObjectValue getObject(final IVirtualMachine machine) throws ExecutionException {
+    private ObjectValueStatement getObject(final IVirtualMachine machine) throws ExecutionException {
         final IStatement object = machine.getPipeline().getCurrentEntry().getInitializedVariable(objectName);
-        if (!(object instanceof ObjectValue))
+        if (!(object instanceof ObjectValueStatement))
             throw new RuntimeException(objectName + " refers to an non-object: " + object);
 
-        return (ObjectValue) object;
+        return (ObjectValueStatement) object;
     }
 }

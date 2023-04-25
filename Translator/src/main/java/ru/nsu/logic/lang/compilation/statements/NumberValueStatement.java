@@ -10,19 +10,19 @@ import ru.nsu.logic.lang.execution.common.ExecutionException;
 import ru.nsu.logic.lang.execution.common.IVirtualMachine;
 
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
-public class NumberValue implements IStatement {
+public class NumberValueStatement implements IStatement {
 
     private final Number number;
     @With
     @Getter
     private final FileLocation location;
 
-    public NumberValue(final long l, final FileLocation location) {
+    public NumberValueStatement(final long l, final FileLocation location) {
         number = l;
         this.location = location;
     }
 
-    public NumberValue(final double d, final FileLocation location) {
+    public NumberValueStatement(final double d, final FileLocation location) {
         number = d;
         this.location = location;
     }

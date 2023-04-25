@@ -43,7 +43,7 @@ abstract class VirtualMachineBase implements IVirtualMachine {
             while (!pipeline.empty()) {
                 final IPipelineEntry currentEntry = pipeline.getCurrentEntry();
                 if (currentEntry.completed()) {
-                    onPipelineRollback(new NullValue(null));
+                    onPipelineRollback(new NullValueStatement(null));
                     continue;
                 }
                 context = pipeline.getCurrentContext();
@@ -53,7 +53,7 @@ abstract class VirtualMachineBase implements IVirtualMachine {
                 if (result.isCompleted())
                     currentEntry.nextStatement();
             }
-            shutdown();
+
         }
         catch (final ExecutionException e) {
             if (context != null)
@@ -62,6 +62,9 @@ abstract class VirtualMachineBase implements IVirtualMachine {
                                 ":" + context.getLocation().getColumn() +
                                 ": " + e.getMessage());
             throw e;
+        }
+        finally {
+            shutdown();
         }
     }
 
@@ -120,15 +123,12 @@ abstract class VirtualMachineBase implements IVirtualMachine {
         final IContext context = pipeline.getCurrentContext();
 
         final IStatement object = pipeline.getCurrentEntry().getInitializedVariable(objectName);
-        if (!(object instanceof ObjectValue))
+        if (!(object instanceof ObjectValueStatement))
             throw new RuntimeException(objectName + " refers to an non-object: " + object);
 
-        final String className = ((ObjectValue) object).getClassName();
-        final Optional<ICompiledClass> compiledClass = compiledClasses.lookup(className);
-        if (!compiledClass.isPresent())
-            throw new ExecutionException("Class not found: " + className);
+        final ICompiledClass compiledClass = ((ObjectValueStatement) object).myClass();
+        final Optional<ICompiledMethod> method = compiledClass.getMethod(methodName);
 
-        final Optional<ICompiledMethod> method = compiledClass.get().getMethod(methodName);
         if (!method.isPresent())
             throw new ExecutionException("Method not found: " + methodName);
         if (method.get().getLocation().compareTo(context.getLocation()) > 0)
@@ -136,9 +136,9 @@ abstract class VirtualMachineBase implements IVirtualMachine {
         if (!callStmt.getAccessMask().contains(method.get().getAccessType()))
             throw new ExecutionException("Cannot access " + methodName + " which declared " + method.get().getAccessType());
 
-        final String diagnosticMsg = className + '.' + methodName;
+        final String diagnosticMsg = compiledClass.getName() + '.' + methodName;
         final IStatement retVal = extendPipeline(callStmt,
-                Context.CreateForClassMethod(className, methodName),
+                Context.CreateForClassMethod(compiledClass.getName(), methodName),
                 prepareArgs(method.get().getArguments(), callStmt.getCallParameters(), diagnosticMsg),
                 method.get().getBody());
 
@@ -160,14 +160,14 @@ abstract class VirtualMachineBase implements IVirtualMachine {
         final Optional<ICompiledMethod> constructor = compiledClass.get().getConstructor();
         if (!constructor.isPresent())
             /// Default constructor, pipeline not extended actually
-            return new ObjectValue(compiledClass.get(), createStmt.getLocation());
+            return new ObjectValueStatement(compiledClass.get(), createStmt.getLocation());
 
         if (context.isClassMethodCtx() &&
             context.getClassMethodCtx().getClassName().equals(className) &&
             context.getClassMethodCtx().getMethodName().equals(ICompiledClass.CTOR_NAME))
             throw new ExecutionException("Found recursion in " + className + " constructor");
 
-        final ObjectValue object = new ObjectValue(compiledClass.get(), createStmt.getLocation());
+        final ObjectValueStatement object = new ObjectValueStatement(compiledClass.get(), createStmt.getLocation());
 
         /// "Trick" to return value from constructor
         final List<IStatement> body = new LinkedList<>(constructor.get().getBody());
@@ -187,8 +187,7 @@ abstract class VirtualMachineBase implements IVirtualMachine {
                                       final Context context,
                                       final Map<String, IStatement> varInitializers,
                                       final List<IStatement> statements) {
-
-        /// TODO: заменить эту залупу на пацанский log4j
+        
         ///System.out.println("[INFO] Extended pipeline for " + context + " from " + pipeline.getCurrentContext());
 
         final String uniqueName = pipeline.getCurrentEntry().pushTempVariable();

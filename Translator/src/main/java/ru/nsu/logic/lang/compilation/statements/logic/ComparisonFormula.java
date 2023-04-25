@@ -5,7 +5,7 @@ import lombok.Setter;
 import ru.nsu.logic.lang.ast.FileLocation;
 import ru.nsu.logic.lang.common.ComparisonOperator;
 import ru.nsu.logic.lang.compilation.common.IStatement;
-import ru.nsu.logic.lang.compilation.statements.NumberValue;
+import ru.nsu.logic.lang.compilation.statements.NumberValueStatement;
 import ru.nsu.logic.lang.execution.common.ExecutionException;
 import ru.nsu.logic.lang.execution.common.IVirtualMachine;
 
@@ -54,8 +54,8 @@ public class ComparisonFormula implements IFormula {
               new ComparisonFormula(left, rightExecuted.getValue(), operator, location), false);
 
     /// If one of operands is null or list then only = and != operators are supported
-    if (!(leftExecuted.getValue() instanceof NumberValue) ||
-        !(rightExecuted.getValue() instanceof NumberValue)) {
+    if (!(leftExecuted.getValue() instanceof NumberValueStatement) ||
+        !(rightExecuted.getValue() instanceof NumberValueStatement)) {
       final BiFunction<Object, Object, Boolean> op = OBJECT_OP_TO_FUNCTION.getOrDefault(operator, null);
       if (op == null)
         throw new ExecutionException("Unsupported operation");
@@ -73,8 +73,8 @@ public class ComparisonFormula implements IFormula {
   }
 
   private double asDouble(final IStatement statement) throws ExecutionException {
-    if (!(statement instanceof NumberValue))
+    if (!(statement instanceof NumberValueStatement))
       throw new ExecutionException("Expected number");
-    return ((NumberValue) statement).asDouble();
+    return ((NumberValueStatement) statement).asDouble();
   }
 }

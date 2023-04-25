@@ -11,7 +11,7 @@ import java.util.List;
 
 @AllArgsConstructor
 @EqualsAndHashCode
-public class ListValue implements IStatement {
+public class ListValueStatement implements IStatement {
     @With
     @Getter
     private List<IStatement> elements;
@@ -36,7 +36,7 @@ public class ListValue implements IStatement {
                 break;
             }
         }
-        return new ExecutionResult<>(new ListValue(executed, getLocation()), completed);
+        return new ExecutionResult<>(new ListValueStatement(executed, getLocation()), completed);
     }
 
     @Override
