@@ -6,13 +6,13 @@ import ru.nsu.logic.lang.execution.common.ExecutionException;
 import ru.nsu.logic.lang.execution.common.IVirtualMachine;
 
 @AllArgsConstructor
-public class BooleanValue implements IFormula {
+public class BooleanValueStatement implements IFormula {
     @Getter
     private final Boolean value;
 
     @Override
     public ExecutionResult<IFormula> execute(IVirtualMachine machine) throws ExecutionException {
-        return new ExecutionResult<>(this,true);
+        return completed(this);
     }
 
     @Override

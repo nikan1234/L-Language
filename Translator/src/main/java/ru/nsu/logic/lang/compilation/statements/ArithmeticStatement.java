@@ -1,5 +1,6 @@
 package ru.nsu.logic.lang.compilation.statements;
 
+import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.With;
@@ -15,6 +16,7 @@ import java.util.List;
 @AllArgsConstructor
 public class ArithmeticStatement implements IStatement {
 
+    @With(AccessLevel.PRIVATE)
     private List<IStatement> operands;
     private List<String> operators;
 
@@ -35,8 +37,8 @@ public class ArithmeticStatement implements IStatement {
 
             executed.set(i, executionResult.getValue());
             if (!executionResult.isCompleted())
-                return new ExecutionResult<>(new ArithmeticStatement(executed, operators, getLocation()), false);
+                return uncompleted(withOperands(executed));
         }
-        return new ExecutionResult<>(new ArithmeticEvaluator(executed, operators, location).calculate(), true);
+        return completed(new ArithmeticEvaluator(executed, operators, location).calculate());
     }
 }

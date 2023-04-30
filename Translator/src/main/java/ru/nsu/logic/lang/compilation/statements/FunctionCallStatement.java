@@ -1,9 +1,6 @@
 package ru.nsu.logic.lang.compilation.statements;
 
-import lombok.AllArgsConstructor;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.With;
+import lombok.*;
 import ru.nsu.logic.lang.ast.FileLocation;
 import ru.nsu.logic.lang.builtins.common.BuiltinsRegistry;
 import ru.nsu.logic.lang.compilation.common.IStatement;
@@ -14,13 +11,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-@EqualsAndHashCode
 @AllArgsConstructor
 public class FunctionCallStatement implements IStatement {
     @Getter
     private String functionName;
     @Getter
-    @EqualsAndHashCode.Exclude
+    @With(AccessLevel.PRIVATE)
     private List<IStatement> callParameters;
     @With
     @Getter
@@ -37,20 +33,17 @@ public class FunctionCallStatement implements IStatement {
 
             executed.set(i, executionResult.getValue());
             if (!executionResult.isCompleted())
-                return new ExecutionResult<>(
-                        new FunctionCallStatement(functionName, executed, getLocation()),
-                        false);
+                return uncompleted(withCallParameters(executed));
         }
 
         if (isBuiltInFunction()) {
             /// Build-in, all args are calculated /
             final Optional<BuiltinsRegistry.BuiltinBuilder<?>> optional = BuiltinsRegistry.INSTANCE.lookup(functionName);
             assert(optional.isPresent());
-            return new ExecutionResult<>(optional.get().build(machine).evaluate(location, executed), true);
+            return completed(optional.get().build(machine).evaluate(location, executed));
         }
-        final IStatement retVal = machine.onPipelineExtend(
-                new FunctionCallStatement(functionName, executed, getLocation()));
-        return new ExecutionResult<>(retVal, retVal == null);
+        final IStatement retVal = machine.onPipelineExtend(withCallParameters(executed));
+        return uncompleted(retVal);
     }
 
     private boolean isBuiltInFunction() {

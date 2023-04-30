@@ -64,7 +64,7 @@ public class ObjectValueStatement implements IObject {
 
     @Override
     public ExecutionResult<IStatement> execute(IVirtualMachine machine) throws ExecutionException {
-        return new ExecutionResult<>(this, true);
+        return completed(this);
     }
 
     @Override

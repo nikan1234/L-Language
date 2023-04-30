@@ -17,7 +17,7 @@ public class NullValueStatement implements IStatement {
 
     @Override
     public ExecutionResult<IStatement> execute(IVirtualMachine machine) throws ExecutionException {
-        return new ExecutionResult<>(this, true);
+        return completed(this);
     }
 
     @Override

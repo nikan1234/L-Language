@@ -29,7 +29,7 @@ public class MemberStatement implements IStatement {
 
     @Override
     public ExecutionResult<IStatement> execute(IVirtualMachine machine) throws ExecutionException {
-        return new ExecutionResult<>(getObject(machine).getMemberValue(memberName, getAccessMask(machine)), true);
+        return completed(getObject(machine).getMemberValue(memberName, getAccessMask(machine)));
     }
 
     private EnumSet<AccessType> getAccessMask(final IVirtualMachine machine) throws ExecutionException {

@@ -83,8 +83,12 @@ abstract class VirtualMachineBase implements IVirtualMachine {
 
     @Override
     public IStatement onPipelineExtend(final IStatement statement) throws ExecutionException {
+        // do { ... }
+        if (statement instanceof NestedStatementSequence)
+            return extendPipelineOnNestedCall((NestedStatementSequence) statement);
+
         // foo();
-        if (statement instanceof FunctionCallStatement)
+        else if (statement instanceof FunctionCallStatement)
             return extendPipelineOnFunctionCall((FunctionCallStatement) statement);
 
         // foo.bar()
@@ -96,6 +100,14 @@ abstract class VirtualMachineBase implements IVirtualMachine {
             return extendPipelineOnCtorCall((ConstructorCallStatement) statement);
 
         throw new RuntimeException("Internal VM error: cannot extend pipeline for " + statement);
+    }
+
+    private IStatement extendPipelineOnNestedCall(final NestedStatementSequence nestedSeqStmt) {
+        /* Execute nested block in the same context */
+        return extendPipeline(nestedSeqStmt,
+                (Context) getPipeline().getCurrentContext(),
+                getPipeline().getCurrentEntry().getInitializedVariables(),
+                nestedSeqStmt.getBody());
     }
 
     private IStatement extendPipelineOnFunctionCall(final FunctionCallStatement callStmt) throws ExecutionException {
@@ -118,6 +130,9 @@ abstract class VirtualMachineBase implements IVirtualMachine {
     }
 
     private IStatement extendPipelineOnMethodCall(final MethodCallStatement callStmt) throws ExecutionException {
+        if (ICompiledClass.CTOR_NAME.equals(callStmt.getMethodName()))
+            throw new RuntimeException("VM internal error: unexpected constructor call");
+
         final String objectName = callStmt.getObjectName();
         final String methodName = callStmt.getMethodName();
         final IContext context = pipeline.getCurrentContext();
@@ -135,6 +150,10 @@ abstract class VirtualMachineBase implements IVirtualMachine {
             throw new ExecutionException("Function " + methodName + " is not declared yet");
         if (!callStmt.getAccessMask().contains(method.get().getAccessType()))
             throw new ExecutionException("Cannot access " + methodName + " which declared " + method.get().getAccessType());
+        if (context.isClassMethodCtx() &&
+            context.getClassMethodCtx().getClassName().equals(compiledClass.getName()) &&
+            context.getClassMethodCtx().getMethodName().equals(methodName))
+            throw new ExecutionException("Found recursion in " + callStmt.getMethodName());
 
         final String diagnosticMsg = compiledClass.getName() + '.' + methodName;
         final IStatement retVal = extendPipeline(callStmt,

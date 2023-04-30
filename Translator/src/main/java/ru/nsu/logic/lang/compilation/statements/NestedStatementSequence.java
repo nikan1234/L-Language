@@ -8,20 +8,20 @@ import ru.nsu.logic.lang.compilation.common.IStatement;
 import ru.nsu.logic.lang.execution.common.ExecutionException;
 import ru.nsu.logic.lang.execution.common.IVirtualMachine;
 
+import java.util.List;
+
+
 @AllArgsConstructor
-public class VariableStatement implements IStatement {
+public class NestedStatementSequence implements IStatement {
     @Getter
-    private String name;
+    private final List<IStatement> body;
     @With
     @Getter
     private final FileLocation location;
 
-    void setValue(final IVirtualMachine machine, final IStatement statement) {
-        machine.getPipeline().getCurrentEntry().initializeVariable(name, statement);
-    }
 
     @Override
-    public ExecutionResult<IStatement> execute(IVirtualMachine machine) throws ExecutionException {
-        return completed(machine.getPipeline().getCurrentEntry().getInitializedVariable(name));
+    public ExecutionResult<IStatement> execute(final IVirtualMachine machine) throws ExecutionException {
+        return uncompleted(machine.onPipelineExtend(this));
     }
 }

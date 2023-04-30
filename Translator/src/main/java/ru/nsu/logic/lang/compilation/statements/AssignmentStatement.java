@@ -11,6 +11,7 @@ import ru.nsu.logic.lang.execution.common.IVirtualMachine;
 @AllArgsConstructor
 public class AssignmentStatement implements IStatement {
 
+    @Getter
     private IStatement target;
     private IStatement what;
 
@@ -23,16 +24,16 @@ public class AssignmentStatement implements IStatement {
         final ExecutionResult<IStatement> whatExecuted =  what.execute(machine);
         final IStatement value = whatExecuted.getValue();
         if (!whatExecuted.isCompleted())
-            return new ExecutionResult<>(new AssignmentStatement(target, value, getLocation()), false);
+            return uncompleted(new AssignmentStatement(target, value, getLocation()));
 
         if (target instanceof VariableStatement) {
             ((VariableStatement) target).setValue(machine, value);
-            return new ExecutionResult<>(null, true);
+            return completed(null);
         }
 
         if (target instanceof MemberStatement) {
             ((MemberStatement) target).setValue(machine, value);
-            return new ExecutionResult<>(null, true);
+            return completed(null);
         }
 
         throw new ExecutionException("Cannot assign to " + target);

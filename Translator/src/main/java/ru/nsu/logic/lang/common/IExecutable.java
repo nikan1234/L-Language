@@ -15,6 +15,9 @@ public interface IExecutable<T extends IExecutable<T>> {
         boolean completed;
     }
 
+    default ExecutionResult<T> completed(T value) { return new ExecutionResult<>(value, true); }
+    default ExecutionResult<T> uncompleted(T value) { return new ExecutionResult<>(value, false); }
+
     /**
      * Executes statement
      */

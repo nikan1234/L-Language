@@ -29,7 +29,7 @@ public class NumberValueStatement implements IStatement {
 
     @Override
     public ExecutionResult<IStatement> execute(IVirtualMachine machine) {
-        return new ExecutionResult<>(this, true);
+        return completed(this);
     }
 
     @Override

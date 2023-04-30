@@ -14,7 +14,7 @@ import java.util.Map;
 import java.util.function.BiFunction;
 
 @AllArgsConstructor
-public class ComparisonFormula implements IFormula {
+public class ComparisonFormulaStatement implements IFormula {
 
   @Setter
   private IStatement left;
@@ -45,13 +45,11 @@ public class ComparisonFormula implements IFormula {
   public ExecutionResult<IFormula> execute(final IVirtualMachine machine) throws ExecutionException {
     final ExecutionResult<IStatement> leftExecuted = left.execute(machine);
     if (!leftExecuted.isCompleted())
-      return new ExecutionResult<>(
-              new ComparisonFormula(leftExecuted.getValue(), right, operator, location), false);
+      return uncompleted(new ComparisonFormulaStatement(leftExecuted.getValue(), right, operator, location));
 
     final ExecutionResult<IStatement> rightExecuted = right.execute(machine);
     if (!rightExecuted.isCompleted())
-      return new ExecutionResult<>(
-              new ComparisonFormula(left, rightExecuted.getValue(), operator, location), false);
+      return uncompleted(new ComparisonFormulaStatement(left, rightExecuted.getValue(), operator, location));
 
     /// If one of operands is null or list then only = and != operators are supported
     if (!(leftExecuted.getValue() instanceof NumberValueStatement) ||
@@ -60,16 +58,14 @@ public class ComparisonFormula implements IFormula {
       if (op == null)
         throw new ExecutionException("Unsupported operation");
 
-      return new ExecutionResult<>(new BooleanValue(op.apply(
-              leftExecuted.getValue(),
-              rightExecuted.getValue())), true);
+      return completed(new BooleanValueStatement(op.apply(leftExecuted.getValue(), rightExecuted.getValue())));
     }
 
 
     /// Evaluate logical expression for numbers
     final boolean cmpResult = NUMERIC_OP_TO_FUNCTION.get(operator)
             .apply(asDouble(leftExecuted.getValue()), asDouble(rightExecuted.getValue()));
-    return new ExecutionResult<>(new BooleanValue(cmpResult), true);
+    return completed(new BooleanValueStatement(cmpResult));
   }
 
   private double asDouble(final IStatement statement) throws ExecutionException {

@@ -1,7 +1,7 @@
 package ru.nsu.logic.lang.compilation.statements;
 
+import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
-import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.With;
 import ru.nsu.logic.lang.ast.FileLocation;
@@ -15,7 +15,6 @@ import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 
-@EqualsAndHashCode
 @AllArgsConstructor
 public class MethodCallStatement implements IStatement {
     @Getter
@@ -23,7 +22,7 @@ public class MethodCallStatement implements IStatement {
     @Getter
     private String methodName;
     @Getter
-    @EqualsAndHashCode.Exclude
+    @With(AccessLevel.PRIVATE)
     private List<IStatement> callParameters;
     @With
     @Getter
@@ -44,14 +43,11 @@ public class MethodCallStatement implements IStatement {
 
             executed.set(i, executionResult.getValue());
             if (!executionResult.isCompleted())
-                return new ExecutionResult<>(
-                        new MethodCallStatement(objectName, methodName, executed, getLocation()),
-                        false);
+                return uncompleted(withCallParameters(executed));
         }
 
-        final IStatement retVal = machine.onPipelineExtend(
-                new MethodCallStatement(objectName, methodName, executed, getLocation()));
-        return new ExecutionResult<>(retVal, retVal == null);
+        final IStatement retVal = machine.onPipelineExtend(withCallParameters(executed));
+        return uncompleted(retVal);
     }
 
     public EnumSet<AccessType> getAccessMask() {

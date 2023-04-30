@@ -4,13 +4,13 @@ import lombok.AllArgsConstructor;
 import ru.nsu.logic.lang.ast.*;
 import ru.nsu.logic.lang.common.AccessType;
 import ru.nsu.logic.lang.common.ComparisonOperator;
+import ru.nsu.logic.lang.common.IExecutable;
 import ru.nsu.logic.lang.common.LimitedQuantifier;
 import ru.nsu.logic.lang.compilation.common.*;
 import ru.nsu.logic.lang.compilation.statements.*;
-import ru.nsu.logic.lang.compilation.statements.logic.ComparisonFormula;
+import ru.nsu.logic.lang.compilation.statements.logic.ComparisonFormulaStatement;
 import ru.nsu.logic.lang.compilation.statements.logic.IFormula;
-import ru.nsu.logic.lang.common.IExecutable;
-import ru.nsu.logic.lang.compilation.statements.logic.QuantifierFormula;
+import ru.nsu.logic.lang.compilation.statements.logic.QuantifierFormulaStatement;
 import ru.nsu.logic.lang.utils.FilteredVisitor;
 
 import java.util.ArrayList;
@@ -129,6 +129,14 @@ public class Compiler implements ICompiler {
                         node.jjtGetLocation())
         ));
 
+        /* Nested statement */
+        compiler.statementRules.add(new ASTTransformRule<>(
+                ASTNestedStatementSequence.class,
+                node -> new NestedStatementSequence(
+                        node.jjtGetChildren().stream().map(compileStmt).collect(Collectors.toList()),
+                        node.jjtGetLocation())
+        ));
+
         /* Cond */
         compiler.statementRules.add(new ASTTransformRule<>(
                 ASTCondStatement.class,
@@ -146,6 +154,18 @@ public class Compiler implements ICompiler {
                 }
         ));
 
+        /* Iteration */
+        compiler.statementRules.add(new ASTTransformRule<>(
+           ASTIterationStatement.class,
+           node -> new IterationStatement(
+                   (AssignmentStatement) compileStmt.apply(node.jjtGetChild(1)),
+                   compileStmt.apply(node.jjtGetChild(0)),
+                   compileStmt.apply(node.jjtGetChild(3)),
+                   compileFormula.apply(node.jjtGetChild(2)),
+                   node.jjtGetLocation()
+           )
+        ));
+
         /* Return */
         compiler.statementRules.add(new ASTTransformRule<>(
            ASTReturnStatement.class,
@@ -157,7 +177,7 @@ public class Compiler implements ICompiler {
         /* Comparison formula */
         compiler.statementRules.add(new ASTTransformRule<>(
                 ASTComparisonFormula.class,
-                node -> new ComparisonFormula(
+                node -> new ComparisonFormulaStatement(
                         compileStmt.apply(node.jjtGetChild(0)),
                         compileStmt.apply(node.jjtGetChild(1)),
                         node.jjtGetValueAs(ComparisonOperator.class),
@@ -169,7 +189,7 @@ public class Compiler implements ICompiler {
            ASTQuantifierFormula.class,
            node -> {
                final LimitedQuantifier<Node> quantifier = node.jjtGetValueAs(LimitedQuantifier.class);
-               return new QuantifierFormula(
+               return new QuantifierFormulaStatement(
                        new LimitedQuantifier<>(
                                quantifier.getQuantifier(),
                                quantifier.getVariable(),

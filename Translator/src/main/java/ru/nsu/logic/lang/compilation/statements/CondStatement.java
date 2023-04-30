@@ -1,10 +1,11 @@
 package ru.nsu.logic.lang.compilation.statements;
 
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.With;
 import ru.nsu.logic.lang.ast.FileLocation;
 import ru.nsu.logic.lang.compilation.common.IStatement;
-import ru.nsu.logic.lang.compilation.statements.logic.BooleanValue;
+import ru.nsu.logic.lang.compilation.statements.logic.BooleanValueStatement;
 import ru.nsu.logic.lang.compilation.statements.logic.IFormula;
 import ru.nsu.logic.lang.execution.common.ExecutionException;
 import ru.nsu.logic.lang.execution.common.IVirtualMachine;
@@ -14,6 +15,7 @@ import java.util.List;
 
 
 public class CondStatement implements IStatement {
+    @With(AccessLevel.PRIVATE)
     private final List<IFormula> formulas;
     private final List<IStatement> statements;
     private final int currentStatementIndex;
@@ -48,10 +50,8 @@ public class CondStatement implements IStatement {
             executedFormulas.set(i, formulaExecuted.getValue());
 
             if (!formulaExecuted.isCompleted())
-                return new ExecutionResult<>(
-                        new CondStatement(executedFormulas, statements, i, location),
-                        false);
-
+                return uncompleted(withFormulas(executedFormulas));
+            
             if (asBool(formulaExecuted.getValue())) {
                 return statements.get(i).execute(machine);
             }
@@ -61,8 +61,8 @@ public class CondStatement implements IStatement {
 
 
     private boolean asBool(final IFormula formula) throws ExecutionException {
-        if (formula instanceof BooleanValue)
-            return ((BooleanValue) formula).getValue();
+        if (formula instanceof BooleanValueStatement)
+            return ((BooleanValueStatement) formula).getValue();
         throw new ExecutionException("Not logical value");
     }
 }

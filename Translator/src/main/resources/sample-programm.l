@@ -42,9 +42,15 @@ gamma := cond(forall x in [1, 2, 3, 5] exists y in makeList(0, 1) check(x, y) = 
 print(gamma);
 
 shift := 1;
-beta := cond(exists x subseteq [0, 1, 2, 3, 4, 6, 6] firstPlusLast(x) = len(x) ==> x, []);
+beta := cond(exists x subseteq [0, 1, 2, 3, 4, 6, 6] firstPlusLast(x) = len(x) ==> do {
+                print(1234);
+                shift := shift + 1;
+                return shift;
+             },
+             []);
 
+print(beta);
+print(shift);
 
-a := new A(6, 8);
-print(a.x);
-a.foo();
+w := iteration<10>(x := nil, len(x) <> 9 ==> do {print(x); return cons(x, x);});
+print(w);

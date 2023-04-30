@@ -1,4 +1,4 @@
-package ru.nsu.logic.lang.apps.local;
+package ru.nsu.logic.lang.apps.script;
 
 import net.sourceforge.argparse4j.ArgumentParsers;
 import net.sourceforge.argparse4j.inf.ArgumentParser;

@@ -7,7 +7,8 @@ import java.util.Map;
 import java.util.UUID;
 
 public interface ITransactionInfo {
-    UUID getIdentifier();
+    UUID getIdentifier(); // уникальное имя
+    // TODO подпись клиента
     ISmartContractId getSmartContractId();
     ISmartContractMethodId getSmartContractMethodId();
     Map<String, IStatement> getParameters();

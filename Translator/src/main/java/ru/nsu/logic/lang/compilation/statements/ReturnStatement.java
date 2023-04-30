@@ -21,8 +21,8 @@ public class ReturnStatement implements IStatement {
         final ExecutionResult<IStatement> whatExecuted = what.execute(machine);
         if (whatExecuted.isCompleted()) {
             machine.onPipelineRollback(whatExecuted.getValue());
-            return new ExecutionResult<>(null, true);
+            return completed(null);
         }
-        return new ExecutionResult<>(new ReturnStatement(whatExecuted.getValue(), getLocation()), false);
+        return uncompleted(new ReturnStatement(whatExecuted.getValue(), getLocation()));
     }
 }

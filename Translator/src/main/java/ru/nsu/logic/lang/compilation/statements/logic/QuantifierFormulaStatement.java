@@ -9,7 +9,7 @@ import ru.nsu.logic.lang.execution.common.IVirtualMachine;
 import java.util.ArrayList;
 import java.util.List;
 
-public class QuantifierFormula implements IFormula {
+public class QuantifierFormulaStatement implements IFormula {
     private final LimitedQuantifier<IStatement> limitedQuantifier;
     private final IFormula checkFormula;
 
@@ -87,15 +87,15 @@ public class QuantifierFormula implements IFormula {
         }
     }
 
-    public QuantifierFormula(final LimitedQuantifier<IStatement> limitedQuantifier,
-                             final IFormula checkFormula) {
+    public QuantifierFormulaStatement(final LimitedQuantifier<IStatement> limitedQuantifier,
+                                      final IFormula checkFormula) {
         this(limitedQuantifier,checkFormula, null, null);
     }
 
-    private QuantifierFormula(final LimitedQuantifier<IStatement> limitedQuantifier,
-                              final IFormula checkFormula,
-                              final IFormula currentlyExecuted,
-                              final IValuesProvider valuesProvider) {
+    private QuantifierFormulaStatement(final LimitedQuantifier<IStatement> limitedQuantifier,
+                                       final IFormula checkFormula,
+                                       final IFormula currentlyExecuted,
+                                       final IValuesProvider valuesProvider) {
         this.limitedQuantifier = limitedQuantifier;
         this.checkFormula = checkFormula;
         this.currentlyExecuted = currentlyExecuted;
@@ -113,8 +113,7 @@ public class QuantifierFormula implements IFormula {
 
             limitedQuantifier = limitedQuantifier.withSelectionSource(result.getValue());
             if (!result.isCompleted())
-                return new ExecutionResult<>(new QuantifierFormula(
-                        limitedQuantifier, checkFormula), false);
+                return uncompleted(new QuantifierFormulaStatement(limitedQuantifier, checkFormula));
 
             valuesProvider = limitedQuantifier.getSelection() == LimitedQuantifier.Selection.EACH_ELEMENT ?
                     ForeachProvider.create(result.getValue()) : SubseteqProvider.create(result.getValue());
@@ -137,22 +136,21 @@ public class QuantifierFormula implements IFormula {
 
             if (!result.isCompleted()) {
                 currentlyExecuted = result.getValue();
-                return new ExecutionResult<>(new QuantifierFormula(
-                        limitedQuantifier, checkFormula, currentlyExecuted, valuesProvider), false);
+                return uncompleted(new QuantifierFormulaStatement(
+                        limitedQuantifier, checkFormula, currentlyExecuted, valuesProvider));
             }
 
             /* Optimization */
             if (asBool(result.getValue()) && limitedQuantifier.getQuantifier() == LimitedQuantifier.Quantifier.EXISTS)
-                return new ExecutionResult<>(new BooleanValue(true), true);
+                return completed(new BooleanValueStatement(true));
 
             if (!asBool(result.getValue()) && limitedQuantifier.getQuantifier() == LimitedQuantifier.Quantifier.FORALL)
-                return new ExecutionResult<>(new BooleanValue(false), true);
+                return completed(new BooleanValueStatement(false));
 
             currentlyExecuted = null;
         }
-        return new ExecutionResult<>(
-                new BooleanValue(limitedQuantifier.getQuantifier() == LimitedQuantifier.Quantifier.FORALL),
-                true);
+        return completed(
+                new BooleanValueStatement(limitedQuantifier.getQuantifier() == LimitedQuantifier.Quantifier.FORALL));
     }
 
     private static void assertIsList(final IStatement statement) throws ExecutionException {
@@ -161,8 +159,8 @@ public class QuantifierFormula implements IFormula {
     }
 
     private static boolean asBool(final IFormula formula) throws ExecutionException {
-        if (formula instanceof BooleanValue)
-            return ((BooleanValue) formula).getValue();
+        if (formula instanceof BooleanValueStatement)
+            return ((BooleanValueStatement) formula).getValue();
         throw new ExecutionException("Expected bool");
     }
 }

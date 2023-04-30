@@ -25,7 +25,11 @@ TOKEN : {
   |
   < FUNCTION: "function">
   |
+  < FORMULA: "formula">
+  |
   < INHERIT: "extends">
+  |
+  < EXEC_NESTED: "do" >
   |
   < END: ";">
   |
@@ -48,6 +52,8 @@ TOKEN : {
   < ARROW: "==>" >
   |
   < COND: "cond" >
+  |
+  < ITERATION: "iteration" >
   |
   < ASSIGN: ":=" >
   |
@@ -119,6 +125,8 @@ void LLangProgramStatement() :
   (LOOKAHEAD(4) AssignmentStatement() |
    LOOKAHEAD(4) MethodCallStatement() |
    FunctionCallStatement() |
+   CondStatement() |
+   IterationStatement() |
    ReturnStatement()) <END>
 }
 
@@ -287,13 +295,26 @@ ASTQuantifierFormula QuantifierFormula() # QuantifierFormula() :
 //                     L*-features                    //
 ////////////////////////////////////////////////////////
 
+// Lambda functions and formulas
+
+ASTNestedStatementSequence NestedStatementSequence() # NestedStatementSequence :
+{Token t;}
+{
+  t=<EXEC_NESTED> <OBR> (LLangProgramStatement())* <CBR>
+  {
+     jjtThis.jjtSetLocation(new FileLocation(t.beginLine, t.beginColumn));
+     return jjtThis;
+  }
+}
+
 // 1. Cond
 
 ASTCondStatement CondStatement() # CondStatement :
 {Token t;}
 {
    t=<COND> <OPAR>
-   (LOOKAHEAD(Formula() <ARROW>) Formula() <ARROW> Statement() <COMMA>)+ Statement()
+   (LOOKAHEAD(Formula() <ARROW>) Formula() <ARROW> (Statement() | NestedStatementSequence()) <COMMA>)+
+   (Statement() | NestedStatementSequence())
    <CPAR>
    {
      jjtThis.jjtSetLocation(new FileLocation(t.beginLine, t.beginColumn));
@@ -302,7 +323,19 @@ ASTCondStatement CondStatement() # CondStatement :
 }
 
 // 2. Iteration
-// TODO
+
+ASTIterationStatement IterationStatement() # IterationStatement:
+{Token t; Node target;}
+{
+   t=<ITERATION> <LT> Statement() <GT>
+   <OPAR>
+   AssignmentStatement() <COMMA> Formula() <ARROW> (Statement() | NestedStatementSequence())
+   <CPAR>
+   {
+     jjtThis.jjtSetLocation(new FileLocation(t.beginLine, t.beginColumn));
+     return jjtThis;
+   }
+}
 
 
 ////////////////////////////////////////////////////////
@@ -419,6 +452,7 @@ Node SingleStatement() :
 {Node stmt;}
 {
   (LOOKAHEAD(2) stmt=CondStatement() |
+   LOOKAHEAD(2) stmt=IterationStatement() |
    LOOKAHEAD(2) stmt=FunctionCallStatement() |
    LOOKAHEAD(4) stmt=MethodCallStatement() |
    LOOKAHEAD(4) stmt=MemberStatement() | stmt=VariableStatement() |
