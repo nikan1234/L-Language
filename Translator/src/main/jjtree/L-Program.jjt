@@ -31,6 +31,8 @@ TOKEN : {
   |
   < EXEC_NESTED: "do" >
   |
+  < CONSTRUCTOR: "__constructor__">
+  |
   < END: ";">
   |
   < OBR: "{" >
@@ -58,6 +60,8 @@ TOKEN : {
   < ASSIGN: ":=" >
   |
   < THIS: "this" >
+  |
+  < SUPER: "super">
   |
   < NULL: "nil" >
   |
@@ -175,7 +179,7 @@ ASTArgumentDeclaration ArgumentDeclaration() # ArgumentDeclaration :
 ASTBodyDeclaration BodyDeclaration() # BodyDeclaration :
 {}
 {
-  (LLangProgramStatement())*
+  [LOOKAHEAD(2) BaseConstructorCallStatement() <END>] (LLangProgramStatement())*
   { return jjtThis; }
 }
 
@@ -212,7 +216,9 @@ ASTClassDeclaration ClassDeclaration() #ClassDeclaration :
 {
   t=<CLASS> className=Identifier() [InheritanceDeclaration()]
   <OBR>
-      (LOOKAHEAD(2) ClassMemberDeclaration() | ClassMethodDeclaration())*
+      (LOOKAHEAD(2) ClassMemberDeclaration() |
+       LOOKAHEAD(2) ClassMethodDeclaration() |
+       ClassConstructorDeclaration())*
   <CBR>
   {
     jjtThis.jjtSetValue(className.image);
@@ -228,6 +234,19 @@ ASTClassMemberDeclaration ClassMemberDeclaration() #ClassMemberDeclaration :
   {
     jjtThis.jjtSetValue(member.image);
     jjtThis.jjtSetLocation(access.jjtGetLocation());
+    return jjtThis;
+  }
+}
+
+ASTClassConstructorDeclaration ClassConstructorDeclaration() # ClassConstructorDeclaration :
+{Node access = null; Token t; Node n=null;}
+{
+  [access=AccessType()] t=<CONSTRUCTOR>
+  <OPAR> (ArgumentDeclaration() (<COMMA> ArgumentDeclaration())*)? <CPAR>
+  <OBR> BodyDeclaration() <CBR>
+  {
+    jjtThis.jjtSetValue(n);
+    jjtThis.jjtSetLocation(access == null ? new FileLocation(t.beginLine, t.beginColumn) : access.jjtGetLocation());
     return jjtThis;
   }
 }
@@ -391,7 +410,7 @@ ASTListValue ListVal() #ListValue :
 ASTMemberStatement MemberStatement() # MemberStatement :
 {Token objectName; Token memberName;}
 {
-  ((objectName=<THIS> | objectName=Identifier()) <DOT> memberName=Identifier())
+  ((objectName=<THIS> | objectName=<SUPER> | objectName=Identifier()) <DOT> memberName=Identifier())
   {
     jjtThis.jjtSetValue(objectName.image + '.' + memberName.image);
     jjtThis.jjtSetLocation(new FileLocation(objectName.beginLine, objectName.beginColumn));
@@ -427,7 +446,7 @@ ASTFunctionCallStatement FunctionCallStatement() # FunctionCallStatement:
 ASTMethodCallStatement MethodCallStatement() # MethodCallStatement:
 {Token objectName; Token calledMethodName;}
 {
-  (objectName=<THIS> | objectName=Identifier()) <DOT> calledMethodName=Identifier()
+  (objectName=<THIS> | objectName=<SUPER> | objectName=Identifier()) <DOT> calledMethodName=Identifier()
   <OPAR> (Statement() (<COMMA> Statement())*)? <CPAR>
   {
      jjtThis.jjtSetValue(objectName.image + '.' + calledMethodName.image);
@@ -445,6 +464,16 @@ ASTConstructorCallStatement ConstructorCallStatement() # ConstructorCallStatemen
         jjtThis.jjtSetValue(className.image);
         jjtThis.jjtSetLocation(new FileLocation(newToken.beginLine, newToken.beginColumn));
         return jjtThis;
+   }
+}
+
+ASTBaseConstructorCallStatement BaseConstructorCallStatement() # BaseConstructorCallStatement:
+{Token t;}
+{
+   t=<SUPER> <OPAR> (Statement() (<COMMA> Statement())*)? <CPAR>
+   {
+     jjtThis.jjtSetLocation(new FileLocation(t.beginLine, t.beginColumn));
+     return jjtThis;
    }
 }
 

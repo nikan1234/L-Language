@@ -6,7 +6,7 @@ class TestContract {
    }
 
    public function transferMoney(from, to, money) {
-     this.balances := cond(nth(this.balances, from) >= money ==> function () {
+     this.balances := cond(nth(this.balances, from) >= money ==> do {
                               balances := this.balances;
                               balances := set(balances, from, nth(balances, from)  - money);
                               balances := set(balances, to, nth(balances, to) + money);

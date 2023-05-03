@@ -1,65 +1,52 @@
 package ru.nsu.logic.lang.compilation.statements;
 
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.With;
 import ru.nsu.logic.lang.ast.FileLocation;
 import ru.nsu.logic.lang.common.AccessType;
-import ru.nsu.logic.lang.compilation.common.ICompiledClass;
-import ru.nsu.logic.lang.compilation.common.IMember;
-import ru.nsu.logic.lang.compilation.common.IObject;
-import ru.nsu.logic.lang.compilation.common.IStatement;
+import ru.nsu.logic.lang.compilation.common.*;
 import ru.nsu.logic.lang.execution.common.ExecutionException;
 import ru.nsu.logic.lang.execution.common.IVirtualMachine;
 
-import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
+@AllArgsConstructor
 public class ObjectValueStatement implements IObject {
 
+    @With
     private final ICompiledClass myClass;
-    private final IMemberStorage storage;
+    private final IObjectMemberStorage memberStorage;
 
     @With
     @Getter
     private final FileLocation location;
 
 
-    private static class LocalMemberStorage implements IMemberStorage {
-        private final Map<String, IStatement> statementMap = new HashMap<>();
+    private static class LocalMemberStorage implements IObjectMemberStorage {
+        private final Map<IMember, IStatement> statementMap = new HashMap<>();
 
-        LocalMemberStorage(final ICompiledClass compiledClass, final FileLocation location) {
-            compiledClass.getMembers().forEach(m -> this.statementMap.put(m.getName(), new NullValueStatement(location)));
+        LocalMemberStorage(final ICompiledClass compiledClass) {
+            compiledClass.enumerateMembers().forEach(member -> this.statementMap.put(
+                    member, new NullValueStatement(member.getLocation())));
         }
 
         @Override
-        public IStatement lookup(final String memberName) {
-            return statementMap.get(memberName);
+        public IStatement lookup(final IMember member) {
+            return statementMap.get(member);
         }
 
         @Override
-        public void store(final String memberName, final IStatement statement) {
-            statementMap.put(memberName, statement);
+        public void store(final IMember member, final IStatement value) {
+            statementMap.put(member, value);
         }
     }
+
 
     /// Initializes all members with nil
-    public ObjectValueStatement(final ICompiledClass myClass, final FileLocation location) {
-        this.myClass = myClass;
-        this.storage = new LocalMemberStorage(myClass, location);
-        this.location = location;
-    }
-
     public ObjectValueStatement(final ICompiledClass myClass,
-                                final IMemberStorage externalStorage,
                                 final FileLocation location) {
-        this.myClass = myClass;
-        this.storage = externalStorage;
-        this.location = location;
-    }
-
-    public ICompiledClass myClass() {
-        return myClass;
+        this(myClass, new LocalMemberStorage(myClass), location);
     }
 
     @Override
@@ -68,29 +55,46 @@ public class ObjectValueStatement implements IObject {
     }
 
     @Override
+    public IObject toBase() throws ExecutionException {
+        final Optional<ICompiledClass> base = myClass.getBase();
+        if (!base.isPresent())
+            throw new ExecutionException("No base class found");
+
+        return withMyClass(base.get());
+    }
+
+    @Override
+    public IObject toBase(final ICompiledClass baseClass) throws ExecutionException {
+        if (myClass == baseClass)
+            return this;
+
+        ICompiledClass currentClass = myClass;
+        while (currentClass != null) {
+            if (currentClass == baseClass) {
+                return withMyClass(currentClass);
+            }
+            currentClass = currentClass.getBase().orElse(null);
+        }
+        throw new ExecutionException("Cannot cast to " + baseClass.getName());
+    }
+
+    @Override
+    public ICompiledClass getObjectClass() {
+        return myClass;
+    }
+
+    @Override
     public IStatement getMemberValue(final String memberName,
                                      final EnumSet<AccessType> accessMask) throws ExecutionException {
-        validateAccess(memberName, accessMask);
-        return storage.lookup(memberName);
+        final IMember member = myClass.accessMember(memberName, accessMask);
+        return memberStorage.lookup(member);
     }
 
     @Override
     public void setMemberValue(final String memberName,
                                final IStatement statement,
                                final EnumSet<AccessType> accessMask) throws ExecutionException {
-        validateAccess(memberName, accessMask);
-        storage.store(memberName, statement);
-    }
-
-    private void validateAccess(final String memberName,
-                                final EnumSet<AccessType> accessMask) throws ExecutionException {
-        final IMember member = myClass.getMembers().stream()
-                .filter(m -> m.getName().equals(memberName)).findAny().orElse(null);
-        if (member == null)
-            throw new ExecutionException("Member" + memberName + " not found");
-
-        if (!accessMask.contains(member.getAccessType()))
-            throw new ExecutionException("Cannot access " + memberName + " which declared " + member.getAccessType());
-
+        final IMember member = myClass.accessMember(memberName, accessMask);
+        memberStorage.store(member, statement);
     }
 }

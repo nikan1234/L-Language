@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.With;
 import ru.nsu.logic.lang.ast.FileLocation;
 import ru.nsu.logic.lang.common.AccessType;
+import ru.nsu.logic.lang.compilation.common.IObject;
 import ru.nsu.logic.lang.compilation.common.IStatement;
 import ru.nsu.logic.lang.execution.common.ExecutionException;
 import ru.nsu.logic.lang.execution.common.IContext;
@@ -32,7 +33,7 @@ public class MethodCallStatement implements IStatement {
     public ExecutionResult<IStatement> execute(final IVirtualMachine machine) throws ExecutionException {
 
         final IContext context = machine.getPipeline().getCurrentContext();
-        if ("this".equals(objectName) && !context.isClassMethodCtx())
+        if (isSelfMethodCall() && !context.isClassMethodCtx())
             throw new ExecutionException("Cannot use this outside of class");
 
         /// Evaluate arguments
@@ -45,12 +46,34 @@ public class MethodCallStatement implements IStatement {
             if (!executionResult.isCompleted())
                 return uncompleted(withCallParameters(executed));
         }
+        return uncompleted(machine.onPipelineExtend(withCallParameters(executed)));
+    }
 
-        final IStatement retVal = machine.onPipelineExtend(withCallParameters(executed));
-        return uncompleted(retVal);
+    public IObject getObject(final IVirtualMachine machine) throws ExecutionException {
+        if ("super".equals(objectName))
+            return getObjectImpl(machine, "this").toBase();
+
+        return getObjectImpl(machine, objectName);
     }
 
     public EnumSet<AccessType> getAccessMask() {
-        return "this".equals(objectName) ? AccessType.Masks.ALL : AccessType.Masks.ONLY_PUBLIC;
+        if ("this".equals(objectName))
+            return AccessType.Masks.ALL;
+        if ("super".equals(objectName))
+            return AccessType.Masks.PUBLIC_AND_PROTECTED;
+        return AccessType.Masks.ONLY_PUBLIC;
+    }
+
+    private boolean isSelfMethodCall() {
+        return "this".equals(objectName) || "super".equals(objectName);
+    }
+
+    private static IObject getObjectImpl(final IVirtualMachine machine,
+                                         final String objectName) throws ExecutionException {
+        final IStatement object = machine.getPipeline().getCurrentEntry().getInitializedVariable(objectName);
+        if (!(object instanceof IObject))
+            throw new ExecutionException(objectName + " refers to an non-object: " + object);
+
+        return (IObject) object;
     }
 }

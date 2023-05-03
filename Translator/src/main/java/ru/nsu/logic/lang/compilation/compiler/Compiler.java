@@ -15,6 +15,7 @@ import ru.nsu.logic.lang.utils.FilteredVisitor;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -129,6 +130,14 @@ public class Compiler implements ICompiler {
                         node.jjtGetLocation())
         ));
 
+        /* Base constructor call */
+        compiler.statementRules.add(new ASTTransformRule<>(
+                ASTBaseConstructorCallStatement.class,
+                node -> new BaseConstructorCallStatement(
+                        node.jjtGetChildren().stream().map(compileStmt).collect(Collectors.toList()),
+                        node.jjtGetLocation())
+        ));
+
         /* Nested statement */
         compiler.statementRules.add(new ASTTransformRule<>(
                 ASTNestedStatementSequence.class,
@@ -216,7 +225,7 @@ public class Compiler implements ICompiler {
                 compiledFunctions.add(compile((ASTFunctionDeclaration) node));
 
             else if (node instanceof ASTClassDeclaration)
-                compiledClasses.add(compile((ASTClassDeclaration) node));
+                compiledClasses.add(compile((ASTClassDeclaration) node, compiledClasses));
 
             else
                 builder.statement((IStatement) compile(node));
@@ -253,58 +262,75 @@ public class Compiler implements ICompiler {
     }
 
     /// Compile methods
-    private ICompiledMethod compile(final ASTClassMethodDeclaration decl) throws CompilationException {
-        final CompiledClass.Method.MethodBuilder builder = CompiledClass.Method.builder();
-        builder.name(decl.jjtGetValueAs(String.class));
-        builder.location(decl.jjtGetLocation());
+    private ICompiledMethod compile(final ICompiledClass owner, final Node methodOrConstructor)
+            throws CompilationException {
 
-        new FilteredVisitor<>(ASTArgumentDeclaration.class).children(decl)
+        final CompiledClass.Method.MethodBuilder builder = CompiledClass.Method.builder();
+        builder.owner(owner);
+        builder.name(methodOrConstructor.jjtGetValueAs(String.class));
+        builder.location(methodOrConstructor.jjtGetLocation());
+
+        new FilteredVisitor<>(ASTArgumentDeclaration.class).children(methodOrConstructor)
                 .forEach(arg -> builder.arg(arg.jjtGetValueAs(String.class)));
 
-        findBody(decl).jjtGetChildren()
+        findBody(methodOrConstructor).jjtGetChildren()
                 .forEach(node -> builder.statement((IStatement) compile(node)));
 
-        builder.accessType(findAccessType(decl, AccessType.PROTECTED));
+        builder.accessType(findAccessType(methodOrConstructor, AccessType.PROTECTED));
         return builder.build();
     }
 
     /// Compile classes
-    private ICompiledClass compile(final ASTClassDeclaration decl) throws CompilationException {
-        final CompiledClass.CompiledClassBuilder builder = CompiledClass.builder();
-        final String className = decl.jjtGetValueAs(String.class);
+    private ICompiledClass compile(final ASTClassDeclaration decl,
+                                   final CompilationRegistry<ICompiledClass> compiledClasses)
+            throws CompilationException {
 
-        builder.name(className);
-        builder.location(decl.jjtGetLocation());
+        // Base class
+        ICompiledClass baseClass = null;
+
+        final Optional<ASTInheritanceDeclaration> inheritanceDecl =
+                new FilteredVisitor<>(ASTInheritanceDeclaration.class).children(decl).stream().findFirst();
+        if (inheritanceDecl.isPresent()) {
+            final String baseClassName = inheritanceDecl.get().jjtGetValueAs(String.class);
+            final Optional<ICompiledClass> baseClassOpt = compiledClasses.lookup(baseClassName);
+            if (!baseClassOpt.isPresent())
+                throw new CompilationException("Base class " + baseClassName + " not found");
+
+            baseClass = baseClassOpt.get();
+        }
+
+        final CompiledClass compiledClass = new CompiledClass(
+                decl.jjtGetValueAs(String.class),
+                decl.jjtGetLocation(), baseClass);
 
         // Members
-        for (final ASTClassMemberDeclaration member :
-                new FilteredVisitor<>(ASTClassMemberDeclaration.class).children(decl))
-            builder.member(new CompiledClass.Member(
-                    member.jjtGetValueAs(String.class),
-                    findAccessType(member, null),
-                    member.jjtGetLocation()));
+        compiledClass.setMembers(
+                new FilteredVisitor<>(ASTClassMemberDeclaration.class).children(decl).stream()
+                        .map(astMember -> new CompiledClass.Member(
+                                compiledClass,
+                                astMember.jjtGetValueAs(String.class),
+                                findAccessType(astMember, null), astMember.jjtGetLocation()))
+                        .collect(Collectors.toList()));
 
+        // Constructor
+        final List<ASTClassConstructorDeclaration> constructors =
+                new FilteredVisitor<>(ASTClassConstructorDeclaration.class).children(decl);
+        if (constructors.size() > 1)
+            throw new CompilationException(
+                    "Found multiple constructors in class " + compiledClass.getName() +
+                            ". First constructor: " + constructors.get(0).jjtGetLocation() +
+                            " and second: " + constructors.get(1).jjtGetLocation());
+        if (!constructors.isEmpty())
+            compiledClass.setConstructor(compile(compiledClass, constructors.get(0)));
 
-        // Constructor and members
-        ICompiledMethod compiledConstructor = null;
+        // Methods
         final CompilationRegistry<ICompiledMethod> compiledMethods = new CompilationRegistry<>();
-
         for (final ASTClassMethodDeclaration method :
-                new FilteredVisitor<>(ASTClassMethodDeclaration.class).children(decl)) {
+                new FilteredVisitor<>(ASTClassMethodDeclaration.class).children(decl))
+            compiledMethods.add(compile(compiledClass, method));
 
-            final ICompiledMethod compiledMethod = compile(method);
-            if (ICompiledClass.CTOR_NAME.equals(compiledMethod.getName())) {
-                if (compiledConstructor == null)
-                    compiledConstructor = compiledMethod;
-                else
-                    throw new CompilationException(
-                            "Found multiple constructors in class " + className +
-                            ". First constructor: " + compiledConstructor.getLocation() +
-                            " and second: " + compiledMethod.getLocation());
-            }
-            compiledMethods.add(compiledMethod);
-        }
-        return builder.constructor(compiledConstructor).methods(compiledMethods).build();
+        compiledClass.setMethods(compiledMethods);
+        return compiledClass;
     }
 
     // ---------------- Common utils ----------------
@@ -316,18 +342,17 @@ public class Compiler implements ICompiler {
         return body.get(0);
     }
 
-    AccessType findAccessType(final Node memberOrMethod, final AccessType defaultValue)
-            throws CompilationException {
+    AccessType findAccessType(final Node memberOrMethod, final AccessType defaultValue) {
         final List<ASTAccessType> access = new FilteredVisitor<>(ASTAccessType.class).children(memberOrMethod);
         if (access.isEmpty()) {
             if (defaultValue != null)
                 return defaultValue;
             else
-                throw new CompilationException("Access type required");
+                throw new RuntimeException("Access type required");
         }
         else if (access.size() == 1)
             return access.get(0).jjtGetValueAs(AccessType.class);
 
-        throw new CompilationException("Ambiguous access type");
+        throw new RuntimeException("Ambiguous access type");
     }
 }

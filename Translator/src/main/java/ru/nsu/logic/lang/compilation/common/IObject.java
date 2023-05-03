@@ -8,15 +8,12 @@ import java.util.EnumSet;
 
 public interface IObject extends IStatement {
 
-    interface IMemberStorage {
-        IStatement lookup(final String memberName);
-        void store(final String memberName, final IStatement statement);
-    }
+    ICompiledClass getObjectClass();
 
-    IStatement getMemberValue(final String memberName,
-                              final EnumSet<AccessType> accessMask) throws ExecutionException;
+    IObject toBase() throws ExecutionException;
+    IObject toBase(final ICompiledClass baseClass) throws ExecutionException;
 
-    void setMemberValue(final String memberName,
-                        final IStatement statement,
+    IStatement getMemberValue(final String memberName, final EnumSet<AccessType> accessMask) throws ExecutionException;
+    void setMemberValue(final String memberName, final IStatement statement,
                         final EnumSet<AccessType> accessMask) throws ExecutionException;
 }

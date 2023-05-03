@@ -1,6 +1,8 @@
 package ru.nsu.logic.lang.execution;
 
+import ru.nsu.logic.lang.common.AccessType;
 import ru.nsu.logic.lang.compilation.common.*;
+import ru.nsu.logic.lang.compilation.compiler.CompiledClass;
 import ru.nsu.logic.lang.compilation.statements.*;
 import ru.nsu.logic.lang.execution.common.*;
 
@@ -133,72 +135,90 @@ abstract class VirtualMachineBase implements IVirtualMachine {
         if (ICompiledClass.CTOR_NAME.equals(callStmt.getMethodName()))
             throw new RuntimeException("VM internal error: unexpected constructor call");
 
-        final String objectName = callStmt.getObjectName();
         final String methodName = callStmt.getMethodName();
         final IContext context = pipeline.getCurrentContext();
 
-        final IStatement object = pipeline.getCurrentEntry().getInitializedVariable(objectName);
-        if (!(object instanceof ObjectValueStatement))
-            throw new RuntimeException(objectName + " refers to an non-object: " + object);
+        final IObject object = callStmt.getObject(this);
+        final ICompiledClass objectClass = object.getObjectClass();
+        final ICompiledMethod method = objectClass.accessMethod(methodName, callStmt.getAccessMask());
 
-        final ICompiledClass compiledClass = ((ObjectValueStatement) object).myClass();
-        final Optional<ICompiledMethod> method = compiledClass.getMethod(methodName);
-
-        if (!method.isPresent())
-            throw new ExecutionException("Method not found: " + methodName);
-        if (method.get().getLocation().compareTo(context.getLocation()) > 0)
+        if (method.getLocation().compareTo(context.getLocation()) > 0)
             throw new ExecutionException("Function " + methodName + " is not declared yet");
-        if (!callStmt.getAccessMask().contains(method.get().getAccessType()))
-            throw new ExecutionException("Cannot access " + methodName + " which declared " + method.get().getAccessType());
         if (context.isClassMethodCtx() &&
-            context.getClassMethodCtx().getClassName().equals(compiledClass.getName()) &&
+            context.getClassMethodCtx().getClassName().equals(objectClass.getName()) &&
             context.getClassMethodCtx().getMethodName().equals(methodName))
             throw new ExecutionException("Found recursion in " + callStmt.getMethodName());
 
-        final String diagnosticMsg = compiledClass.getName() + '.' + methodName;
+        final String diagnosticMsg = objectClass.getName() + '.' + methodName;
         final IStatement retVal = extendPipeline(callStmt,
-                Context.CreateForClassMethod(compiledClass.getName(), methodName),
-                prepareArgs(method.get().getArguments(), callStmt.getCallParameters(), diagnosticMsg),
-                method.get().getBody());
+                Context.CreateForClassMethod(objectClass.getName(), methodName),
+                prepareArgs(method.getArguments(), callStmt.getCallParameters(), diagnosticMsg),
+                method.getBody());
 
         pipeline.getCurrentEntry().initializeVariable("this", object);
         return retVal;
     }
 
     private IStatement extendPipelineOnCtorCall(final ConstructorCallStatement createStmt) throws ExecutionException {
-        final String className = createStmt.getClassName();
         final IContext context = pipeline.getCurrentContext();
 
-        final Optional<ICompiledClass> compiledClass = compiledClasses.lookup(className);
-        if (!compiledClass.isPresent())
-            throw new ExecutionException("Class not found: " + createStmt.getClassName());
+        /// Search for class
+        final Optional<ICompiledClass> classToCreate;
+        if (createStmt instanceof BaseConstructorCallStatement) {
+            /// Base constructor call
+            final String currentClassName = context.getClassMethodCtx().getClassName();
+            classToCreate = compiledClasses.lookup(currentClassName).orElseThrow(RuntimeException::new).getBase();
+        }
+        else
+            classToCreate = compiledClasses.lookup(createStmt.getClassName());
 
-        if (compiledClass.get().getLocation().compareTo(context.getLocation()) > 0)
-            throw new ExecutionException("Class " + compiledClass + " is not declared yet");
 
-        final Optional<ICompiledMethod> constructor = compiledClass.get().getConstructor();
+        if (!classToCreate.isPresent())
+            throw new ExecutionException("Class not found");
+        if (classToCreate.get().getLocation().compareTo(context.getLocation()) > 0)
+            throw new ExecutionException("Class " + classToCreate + " is not declared yet");
+        if (context.isClassMethodCtx() &&
+            context.getClassMethodCtx().getClassName().equals(classToCreate.get().getName()) &&
+            context.getClassMethodCtx().getMethodName().equals(ICompiledClass.CTOR_NAME))
+            throw new ExecutionException("Found recursion in " + classToCreate.get().getName() + " constructor");
+
+        /// Search for any non-default constructor
+        Optional<ICompiledClass> currentClass = classToCreate;
+        Optional<ICompiledMethod> constructor = Optional.empty();
+        while (currentClass.isPresent() && !constructor.isPresent()) {
+            constructor = currentClass.get().getConstructor(createStmt.getAccessMask());
+            currentClass = currentClass.get().getBase();
+        }
+
+        final IObject actualObject = createStmt instanceof BaseConstructorCallStatement
+                ? (IObject) getPipeline().getCurrentEntry().getInitializedVariable("this")
+                : new ObjectValueStatement(classToCreate.get(), createStmt.getLocation());
+
         if (!constructor.isPresent())
             /// Default constructor, pipeline not extended actually
-            return new ObjectValueStatement(compiledClass.get(), createStmt.getLocation());
+            return actualObject;
 
-        if (context.isClassMethodCtx() &&
-            context.getClassMethodCtx().getClassName().equals(className) &&
-            context.getClassMethodCtx().getMethodName().equals(ICompiledClass.CTOR_NAME))
-            throw new ExecutionException("Found recursion in " + className + " constructor");
+        final List<IStatement> body = new LinkedList<>(constructor.get().getBody());
 
-        final ObjectValueStatement object = new ObjectValueStatement(compiledClass.get(), createStmt.getLocation());
+        /// "Trick" to call base class constructor"
+        if (constructor.get().getOwner().getBase().isPresent()
+                && body.stream().noneMatch(s -> s instanceof BaseConstructorCallStatement))
+            body.add(0, new BaseConstructorCallStatement(body.isEmpty()
+                    ? constructor.get().getLocation()
+                    : body.get(0).getLocation()));
 
         /// "Trick" to return value from constructor
-        final List<IStatement> body = new LinkedList<>(constructor.get().getBody());
-        body.add(new ReturnStatement(
-                object, body.isEmpty() ? constructor.get().getLocation() : body.get(body.size() - 1).getLocation()));
+        body.add(new ReturnStatement(actualObject, body.isEmpty()
+                ? constructor.get().getLocation()
+                : body.get(body.size() - 1).getLocation()));
 
-        final String diagnosticMsg = className + '.' + ICompiledClass.CTOR_NAME;
+        final String diagnosticMsg = constructor.get().getOwner().getName() + '.' + ICompiledClass.CTOR_NAME;
         final IStatement retVal = extendPipeline(createStmt,
-                Context.CreateForClassMethod(className, ICompiledClass.CTOR_NAME),
+                Context.CreateForClassMethod(constructor.get().getOwner().getName(), ICompiledClass.CTOR_NAME),
                 prepareArgs(constructor.get().getArguments(), createStmt.getCallParameters(), diagnosticMsg), body);
 
-        pipeline.getCurrentEntry().initializeVariable("this", object);
+        /// We found non-default constructor, but it could be superclass constructor, so do down-cast
+        pipeline.getCurrentEntry().initializeVariable("this", actualObject.toBase(constructor.get().getOwner()));
         return retVal;
     }
 
@@ -207,7 +227,7 @@ abstract class VirtualMachineBase implements IVirtualMachine {
                                       final Map<String, IStatement> varInitializers,
                                       final List<IStatement> statements) {
         
-        ///System.out.println("[INFO] Extended pipeline for " + context + " from " + pipeline.getCurrentContext());
+        System.out.println("[INFO] Extended pipeline for " + context + " from " + pipeline.getCurrentContext());
 
         final String uniqueName = pipeline.getCurrentEntry().pushTempVariable();
         final IPipelineEntry entry = new PipelineEntry(context, varInitializers, statements);

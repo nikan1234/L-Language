@@ -5,11 +5,13 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.With;
 import ru.nsu.logic.lang.ast.FileLocation;
+import ru.nsu.logic.lang.common.AccessType;
 import ru.nsu.logic.lang.compilation.common.IStatement;
 import ru.nsu.logic.lang.execution.common.ExecutionException;
 import ru.nsu.logic.lang.execution.common.IVirtualMachine;
 
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
 
 @AllArgsConstructor
@@ -39,5 +41,9 @@ public class ConstructorCallStatement implements IStatement {
 
         final IStatement retVal = machine.onPipelineExtend(this);
         return new ExecutionResult<>(retVal, retVal instanceof ObjectValueStatement);
+    }
+
+    public EnumSet<AccessType> getAccessMask() {
+        return AccessType.Masks.ONLY_PUBLIC;
     }
 }
