@@ -10,7 +10,7 @@ public class ASTArithmeticStatements {
         }
     }
 
-    public  static class Binary extends ASTBinaryStatement<ArithmeticOperator> {
+    public static class Binary extends ASTBinaryStatement<ArithmeticOperator> {
         public Binary(Node lhs, Node rhs, ArithmeticOperator operator, FileLocation location) {
             super(lhs, rhs, operator, location);
         }

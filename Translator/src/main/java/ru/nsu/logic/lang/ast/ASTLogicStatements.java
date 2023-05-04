@@ -10,7 +10,7 @@ public class ASTLogicStatements {
         }
     }
 
-    public  static class Binary extends ASTBinaryStatement<LogicOperator> {
+    public static class Binary extends ASTBinaryStatement<LogicOperator> {
         public Binary(Node lhs, Node rhs, LogicOperator operator, FileLocation location) {
             super(lhs, rhs, operator, location);
         }
