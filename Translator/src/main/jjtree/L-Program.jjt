@@ -91,7 +91,15 @@ TOKEN : {
   |
   < IDENTIFIER: ["a"-"z","A"-"Z", "_"] ( ["a"-"z","A"-"Z","0"-"9","_"] )* >
   |
-  < BINARY_OP: ["+", "-", "*", "/"] >
+  < PLUS: "+" >
+  |
+  < MINUS: "-" >
+  |
+  < STAR: "*" >
+  |
+  < SLASH: "/">
+  |
+  < CARAT: "^">
   |
   < EQ: "=" >
   |
@@ -477,7 +485,47 @@ ASTBaseConstructorCallStatement BaseConstructorCallStatement() # BaseConstructor
    }
 }
 
-Node SingleStatement() :
+Node AdditiveStatement():
+{ Node lhs = null; Node rhs = null; ArithmeticOperator op = null; }
+{
+  lhs = MultiplicativeStatement()
+  (LOOKAHEAD(2)
+   (<PLUS> { op = ArithmeticOperator.ADD; } | <MINUS> { op = ArithmeticOperator.SUB; })
+   rhs = MultiplicativeStatement()
+   { lhs = new ASTArithmeticStatements.Binary(lhs, rhs, op, lhs.jjtGetLocation()); })*
+  { return lhs; }
+}
+
+Node MultiplicativeStatement():
+{ Node lhs = null; Node rhs = null; ArithmeticOperator op = null; }
+{
+  lhs = ExponentialStatement()
+  ((<STAR> { op = ArithmeticOperator.MULTIPLY; } | <SLASH> { op = ArithmeticOperator.DIVIDE; })
+   rhs = ExponentialStatement()
+   { lhs = new ASTArithmeticStatements.Binary(lhs, rhs, op, lhs.jjtGetLocation()); })*
+  { return lhs; }
+}
+
+Node ExponentialStatement():
+{ Node lhs = null; Node rhs = null; ArithmeticOperator op = null; }
+{
+  lhs = NegationStatement()
+  (<CARAT> { op = ArithmeticOperator.POWER; }
+   rhs = NegationStatement()
+   { lhs = new ASTArithmeticStatements.Binary(lhs, rhs, op, lhs.jjtGetLocation()); })*
+  { return lhs; }
+}
+
+Node NegationStatement():
+{ ArithmeticOperator op = null; Node p = null; Token t = null;}
+{
+  (t=<MINUS> { op = ArithmeticOperator.SUB; })? (p = PrimeStatement() | <OPAR> p = AdditiveStatement() <CPAR>)
+  {
+    return t == null ? p : new ASTArithmeticStatements.Unary(p, op, new FileLocation(t.beginLine, t.beginColumn));
+  }
+}
+
+Node PrimeStatement() :
 {Node stmt;}
 {
   (LOOKAHEAD(2) stmt=CondStatement() |
@@ -490,23 +538,20 @@ Node SingleStatement() :
   { return stmt; }
 }
 
-ASTArithmeticStatement ArithmeticStatement() # ArithmeticStatement :
-{Token op = null; List<String> ops = new ArrayList();
- Node beginStmt = null; Token beginToken = null; }
-{ (      (beginStmt=SingleStatement() | beginToken = <OPAR> ArithmeticStatement() <CPAR>)
-   (op=<BINARY_OP> (SingleStatement() |              <OPAR> ArithmeticStatement() <CPAR>) { ops.add(op.image); })+)
+ASTArithmeticStatement ArithmeticStatement() #ArithmeticStatement:
+{Node child;}
+{
+  child = AdditiveStatement()
   {
-    jjtThis.jjtSetValue(ops);
-    jjtThis.jjtSetLocation(beginStmt != null ? beginStmt.jjtGetLocation() : new FileLocation(beginToken.beginLine, beginToken.beginColumn));
-    return jjtThis;
+     jjtThis.jjtAddChild(child, 0);
+     return jjtThis;
   }
 }
 
 Node Statement():
 { Node stmt; }
 {
-  (LOOKAHEAD((<OPAR> ArithmeticStatement() <CPAR> | SingleStatement()) <BINARY_OP>) stmt=ArithmeticStatement() |
-   stmt=SingleStatement())
+  (LOOKAHEAD(2) stmt=ArithmeticStatement() | stmt=PrimeStatement())
   { return stmt; }
 }
 

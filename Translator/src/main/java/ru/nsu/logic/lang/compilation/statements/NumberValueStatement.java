@@ -11,7 +11,6 @@ import ru.nsu.logic.lang.execution.common.IVirtualMachine;
 
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class NumberValueStatement implements IStatement {
-
     private final Number number;
     @With
     @Getter
@@ -38,12 +37,20 @@ public class NumberValueStatement implements IStatement {
     }
 
     public double asDouble() {
-        return number.intValue();
+        return number.doubleValue();
     }
 
+    public boolean isInteger() { return number instanceof Long; }
+
     public long asInt() throws ExecutionException {
-        if (number instanceof Long)
+        if (isInteger())
             return number.longValue();
         throw new ExecutionException("Expected integer");
+    }
+
+    public NumberValueStatement negate() {
+        if (number instanceof Long)
+            return new NumberValueStatement(number.longValue() * -1, location);
+        return new NumberValueStatement(number.doubleValue() * -1.0, location);
     }
 }

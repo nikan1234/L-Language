@@ -2,10 +2,7 @@ package ru.nsu.logic.lang.compilation.compiler;
 
 import lombok.AllArgsConstructor;
 import ru.nsu.logic.lang.ast.*;
-import ru.nsu.logic.lang.common.AccessType;
-import ru.nsu.logic.lang.common.ComparisonOperator;
-import ru.nsu.logic.lang.common.IExecutable;
-import ru.nsu.logic.lang.common.LimitedQuantifier;
+import ru.nsu.logic.lang.common.*;
 import ru.nsu.logic.lang.compilation.common.*;
 import ru.nsu.logic.lang.compilation.statements.*;
 import ru.nsu.logic.lang.compilation.statements.logic.ComparisonFormulaStatement;
@@ -96,9 +93,25 @@ public class Compiler implements ICompiler {
         /* Arithmetic */
         compiler.statementRules.add(new ASTTransformRule<>(
                 ASTArithmeticStatement.class,
-                node -> new ArithmeticStatement(
-                        node.jjtGetChildren().stream().map(compileStmt).collect(Collectors.toList()),
-                        node.jjtGetValueAs(List.class),
+                node -> compileStmt.apply(node.jjtGetChild(0))
+        ));
+
+        /* Unary math operation */
+        compiler.statementRules.add(new ASTTransformRule<>(
+                ASTArithmeticStatements.Unary.class,
+                node -> new UnaryArithmeticStatement(
+                        compileStmt.apply(node.jjtGetChild(0)),
+                        node.jjtGetValueAs(ArithmeticOperator.class),
+                        node.jjtGetLocation())
+        ));
+
+        /* Binary math operation */
+        compiler.statementRules.add(new ASTTransformRule<>(
+                ASTArithmeticStatements.Binary.class,
+                node -> new BinaryArithmeticStatement(
+                        compileStmt.apply(node.jjtGetChild(0)),
+                        compileStmt.apply(node.jjtGetChild(1)),
+                        node.jjtGetValueAs(ArithmeticOperator.class),
                         node.jjtGetLocation())
         ));
 
