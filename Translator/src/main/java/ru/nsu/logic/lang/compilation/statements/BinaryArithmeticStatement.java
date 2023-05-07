@@ -1,6 +1,5 @@
 package ru.nsu.logic.lang.compilation.statements;
 
-import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.With;
@@ -58,6 +57,10 @@ public class BinaryArithmeticStatement implements IStatement {
             case DIVIDE: {
                 result = castToInt ? lhsNum.asInt() / rhsNum.asInt()
                         : lhsNum.asDouble() / rhsNum.asDouble();
+                break;
+            }
+            case POWER: {
+                result = Math.pow(lhsNum.asDouble(), rhsNum.asDouble());
                 break;
             }
             default:

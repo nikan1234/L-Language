@@ -52,5 +52,21 @@ beta := cond(exists x subseteq [0, 1, 2, 3, 4, 6, 6] firstPlusLast(x) = len(x) =
 print(beta);
 print(shift);
 
-w := iteration<10>(x := nil, len(x) <> 9 ==> do {print(x); return cons(x, x);});
+
+function foo(x) {
+   return (x);
+}
+
+x := (6 * 6) * 2;
+print(x);
+x := 7;
+print(x);
+x := (((7 * foo(7)) ^ 2));
+print(x);
+x := (((((9)))));
+print(x);
+
+w := iteration<10>(x := nil, (x = nil or len(x) < 2) ==> do { print(x); return cons(x, x); });
 print(w);
+
+

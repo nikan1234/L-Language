@@ -1,13 +1,15 @@
-package ru.nsu.logic.lang.ast;
+package ru.nsu.logic.lang.ast.detail;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import ru.nsu.logic.lang.ast.FileLocation;
+import ru.nsu.logic.lang.ast.Node;
 
 import java.util.Collections;
 import java.util.List;
 
 @AllArgsConstructor
-public class ASTUnaryStatement<OperatorType> implements Node {
+public class ASTUnaryOperationStatement<OperatorType> implements Node {
     private Node operand;
     @Getter
     private OperatorType operator;

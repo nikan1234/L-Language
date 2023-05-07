@@ -1,13 +1,13 @@
 package ru.nsu.logic.lang.compilation.compiler;
 
 import lombok.AllArgsConstructor;
+import ru.nsu.logic.lang.ast.ASTArithmeticStatements;
 import ru.nsu.logic.lang.ast.*;
+import ru.nsu.logic.lang.ast.Node;
 import ru.nsu.logic.lang.common.*;
 import ru.nsu.logic.lang.compilation.common.*;
 import ru.nsu.logic.lang.compilation.statements.*;
-import ru.nsu.logic.lang.compilation.statements.logic.ComparisonFormulaStatement;
-import ru.nsu.logic.lang.compilation.statements.logic.IFormula;
-import ru.nsu.logic.lang.compilation.statements.logic.QuantifierFormulaStatement;
+import ru.nsu.logic.lang.compilation.statements.logic.*;
 import ru.nsu.logic.lang.utils.FilteredVisitor;
 
 import java.util.ArrayList;
@@ -42,6 +42,12 @@ public class Compiler implements ICompiler {
 
         final Function<Node, IStatement> compileStmt = node -> (IStatement) compiler.compile(node);
         final Function<Node, IFormula> compileFormula = node -> (IFormula) compiler.compile(node);
+
+        /* Compound */
+        compiler.statementRules.add(new ASTTransformRule<>(
+                ASTCompoundStatement.class, node -> compileStmt.apply(node.jjtGetChild())));
+        compiler.statementRules.add(new ASTTransformRule<>(
+                ASTCompoundFormula.class, node -> compileFormula.apply(node.jjtGetChild())));
 
         /* Nil */
         compiler.statementRules.add(new ASTTransformRule<>(
@@ -90,28 +96,42 @@ public class Compiler implements ICompiler {
                         node.jjtGetLocation())
         ));
 
-        /* Arithmetic */
-        compiler.statementRules.add(new ASTTransformRule<>(
-                ASTArithmeticStatement.class,
-                node -> compileStmt.apply(node.jjtGetChild(0))
-        ));
 
         /* Unary math operation */
         compiler.statementRules.add(new ASTTransformRule<>(
-                ASTArithmeticStatements.Unary.class,
+                ASTArithmeticStatements.UnaryOp.class,
                 node -> new UnaryArithmeticStatement(
                         compileStmt.apply(node.jjtGetChild(0)),
                         node.jjtGetValueAs(ArithmeticOperator.class),
                         node.jjtGetLocation())
         ));
 
+        /* Unary logic operation */
+        compiler.statementRules.add(new ASTTransformRule<>(
+                ASTLogicStatements.UnaryOp.class,
+                node -> new UnaryLogicStatement(
+                        compileFormula.apply(node.jjtGetChild(0)),
+                        node.jjtGetValueAs(LogicOperator.class),
+                        node.jjtGetLocation())
+        ));
+
         /* Binary math operation */
         compiler.statementRules.add(new ASTTransformRule<>(
-                ASTArithmeticStatements.Binary.class,
+                ASTArithmeticStatements.BinaryOp.class,
                 node -> new BinaryArithmeticStatement(
                         compileStmt.apply(node.jjtGetChild(0)),
                         compileStmt.apply(node.jjtGetChild(1)),
                         node.jjtGetValueAs(ArithmeticOperator.class),
+                        node.jjtGetLocation())
+        ));
+
+        /* Binary logic operation */
+        compiler.statementRules.add(new ASTTransformRule<>(
+                ASTLogicStatements.BinaryOp.class,
+                node -> new BinaryLogicStatement(
+                        compileFormula.apply(node.jjtGetChild(0)),
+                        compileFormula.apply(node.jjtGetChild(1)),
+                        node.jjtGetValueAs(LogicOperator.class),
                         node.jjtGetLocation())
         ));
 

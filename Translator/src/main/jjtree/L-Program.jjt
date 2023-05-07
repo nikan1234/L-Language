@@ -75,11 +75,11 @@ TOKEN : {
   |
   < ACCESS_PROTECTED: "protected" >
   |
-  < LOGIC_AND: "and" >
+  < AND: "and" >
   |
-  < LOGIC_OR: "or" >
+  < OR: "or" >
   |
-  < LOGIC_NOT: "not" >
+  < NOT: "not" >
   |
   < FORALL: "forall" >
   |
@@ -277,14 +277,6 @@ ASTClassMethodDeclaration ClassMethodDeclaration() #ClassMethodDeclaration :
 //                       Formulas                     //
 ////////////////////////////////////////////////////////
 
-Node Formula() :
-{Node formula;}
-{
-   (formula=ComparisonFormula() | formula=QuantifierFormula())
-   { return formula; }
-}
-
-
 ASTComparisonFormula ComparisonFormula() # ComparisonFormula :
 {Node lhs; ComparisonOperator cmp;}
 {
@@ -317,6 +309,62 @@ ASTQuantifierFormula QuantifierFormula() # QuantifierFormula() :
    }
 }
 
+Node DisjunctionStatement():
+{ Node lhs = null; Node rhs = null; LogicOperator op = null; }
+{
+  lhs = ConjunctionStatement()
+  (LOOKAHEAD(2) <OR> { op = LogicOperator.OR; }
+   rhs = ConjunctionStatement()
+   { lhs = new ASTLogicStatements.BinaryOp(lhs, rhs, op, lhs.jjtGetLocation()); })*
+  { return lhs; }
+}
+
+Node ConjunctionStatement():
+{ Node lhs = null; Node rhs = null; LogicOperator op = null; }
+{
+  lhs = NegationStatement()
+  (LOOKAHEAD(2) <AND> { op = LogicOperator.AND; }
+   rhs = NegationStatement()
+   { lhs = new ASTLogicStatements.BinaryOp(lhs, rhs, op, lhs.jjtGetLocation()); })*
+  { return lhs; }
+}
+
+Node NegationStatement():
+{ LogicOperator op = null; Node p = null; Token t = null;}
+{
+  (t=<NOT> { op = LogicOperator.NOT; })?
+  (LOOKAHEAD(4) <OPAR> p = DisjunctionStatement() <CPAR> | p = PrimeFormula())
+  {
+    return t == null ? p : new ASTLogicStatements.UnaryOp(p, op, new FileLocation(t.beginLine, t.beginColumn));
+  }
+}
+
+Node PrimeFormula() :
+{Node formula;}
+{
+   (formula=ComparisonFormula() | formula=QuantifierFormula())
+   { return formula; }
+}
+
+ASTCompoundFormula CompoundFormula() #CompoundFormula:
+{ Node child; }
+{
+  child = DisjunctionStatement()
+  {
+       jjtThis.jjtAssignChild(child);
+       jjtThis.jjtSetLocation(child.jjtGetLocation());
+       return jjtThis;
+  }
+}
+
+Node Formula():
+{ Node stmt; }
+{
+   (LOOKAHEAD(NegationStatement() (<AND> | <OR>)) stmt=CompoundFormula() |
+    LOOKAHEAD(<OPAR> Formula() <CPAR>) <OPAR> stmt=Formula() <CPAR> |
+    stmt=PrimeFormula())
+   { return stmt; }
+}
 
 ////////////////////////////////////////////////////////
 //                     L*-features                    //
@@ -492,7 +540,7 @@ Node AdditiveStatement():
   (LOOKAHEAD(2)
    (<PLUS> { op = ArithmeticOperator.ADD; } | <MINUS> { op = ArithmeticOperator.SUB; })
    rhs = MultiplicativeStatement()
-   { lhs = new ASTArithmeticStatements.Binary(lhs, rhs, op, lhs.jjtGetLocation()); })*
+   { lhs = new ASTArithmeticStatements.BinaryOp(lhs, rhs, op, lhs.jjtGetLocation()); })*
   { return lhs; }
 }
 
@@ -502,32 +550,33 @@ Node MultiplicativeStatement():
   lhs = ExponentialStatement()
   ((<STAR> { op = ArithmeticOperator.MULTIPLY; } | <SLASH> { op = ArithmeticOperator.DIVIDE; })
    rhs = ExponentialStatement()
-   { lhs = new ASTArithmeticStatements.Binary(lhs, rhs, op, lhs.jjtGetLocation()); })*
+   { lhs = new ASTArithmeticStatements.BinaryOp(lhs, rhs, op, lhs.jjtGetLocation()); })*
   { return lhs; }
 }
 
 Node ExponentialStatement():
 { Node lhs = null; Node rhs = null; ArithmeticOperator op = null; }
 {
-  lhs = NegationStatement()
+  lhs = SignInvStatement()
   (<CARAT> { op = ArithmeticOperator.POWER; }
-   rhs = NegationStatement()
-   { lhs = new ASTArithmeticStatements.Binary(lhs, rhs, op, lhs.jjtGetLocation()); })*
+   rhs = SignInvStatement()
+   { lhs = new ASTArithmeticStatements.BinaryOp(lhs, rhs, op, lhs.jjtGetLocation()); })*
   { return lhs; }
 }
 
-Node NegationStatement():
+Node SignInvStatement():
 { ArithmeticOperator op = null; Node p = null; Token t = null;}
 {
-  (t=<MINUS> { op = ArithmeticOperator.SUB; })? (p = PrimeStatement() | <OPAR> p = AdditiveStatement() <CPAR>)
+  (<MINUS> { op = ArithmeticOperator.SUB; })? (LOOKAHEAD(2) <OPAR> p = AdditiveStatement() <CPAR> | p = PrimeStatement())
   {
-    return t == null ? p : new ASTArithmeticStatements.Unary(p, op, new FileLocation(t.beginLine, t.beginColumn));
+    return t == null ? p : new ASTArithmeticStatements.UnaryOp(p, op, new FileLocation(t.beginLine, t.beginColumn));
   }
 }
 
 Node PrimeStatement() :
 {Node stmt;}
 {
+
   (LOOKAHEAD(2) stmt=CondStatement() |
    LOOKAHEAD(2) stmt=IterationStatement() |
    LOOKAHEAD(2) stmt=FunctionCallStatement() |
@@ -538,21 +587,24 @@ Node PrimeStatement() :
   { return stmt; }
 }
 
-ASTArithmeticStatement ArithmeticStatement() #ArithmeticStatement:
-{Node child;}
+ASTCompoundStatement CompoundStatement() #CompoundStatement:
+{ Node child; }
 {
   child = AdditiveStatement()
   {
-     jjtThis.jjtAddChild(child, 0);
-     return jjtThis;
+       jjtThis.jjtAssignChild(child);
+       jjtThis.jjtSetLocation(child.jjtGetLocation());
+       return jjtThis;
   }
 }
 
 Node Statement():
 { Node stmt; }
 {
-  (LOOKAHEAD(2) stmt=ArithmeticStatement() | stmt=PrimeStatement())
-  { return stmt; }
+   (LOOKAHEAD(SignInvStatement() (<PLUS> | <MINUS> | <STAR> | <SLASH> | <CARAT>)) stmt=CompoundStatement() |
+    LOOKAHEAD(<OPAR> Statement() <CPAR>) <OPAR> stmt=Statement() <CPAR> |
+    stmt=PrimeStatement())
+   { return stmt; }
 }
 
 // 4. Assignment, return

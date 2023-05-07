@@ -1,14 +1,16 @@
-package ru.nsu.logic.lang.ast;
+package ru.nsu.logic.lang.ast.detail;
 
 
 import lombok.AllArgsConstructor;
+import ru.nsu.logic.lang.ast.FileLocation;
+import ru.nsu.logic.lang.ast.Node;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 @AllArgsConstructor
-public class ASTBinaryStatement<OperatorType> implements Node {
+public class ASTBinaryOperationStatement<OperatorType> implements Node {
     private final Node lhs;
     private final Node rhs;
     private final OperatorType operator;
