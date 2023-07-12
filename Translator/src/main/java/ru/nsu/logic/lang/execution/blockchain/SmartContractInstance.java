@@ -26,12 +26,18 @@ public class SmartContractInstance implements ISmartContractInstance {
             if (!smartContract.isPresent())
                 throw new RuntimeException("Smart contract " + contractName + " not found");
 
-            final ICompiledMethod smartContractMethod = smartContract.get().accessMethod(
-                    methodName, AccessType.Masks.ONLY_PUBLIC);
-
             this.smartContractProgram = smartContractProgram;
             this.smartContractClass = smartContract.get();
-            this.smartContractMethod = smartContractMethod;
+            if (ICompiledClass.CTOR_NAME.equals(methodName)) {
+                final Optional<ICompiledMethod> constructor = smartContract.get().getConstructor(
+                        AccessType.Masks.ONLY_PUBLIC);
+                if (!constructor.isPresent())
+                    throw new ExecutionException("Smart contract constructor not found");
+                this.smartContractMethod = constructor.get();
+            }
+            else
+                this.smartContractMethod = smartContract.get().accessMethod(methodName, AccessType.Masks.ONLY_PUBLIC);
+
         }
         catch (final ExecutionException e) {
             throw new RuntimeException(e);

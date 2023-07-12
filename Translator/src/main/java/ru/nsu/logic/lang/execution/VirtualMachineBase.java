@@ -1,5 +1,6 @@
 package ru.nsu.logic.lang.execution;
 
+import lombok.AccessLevel;
 import ru.nsu.logic.lang.common.AccessType;
 import ru.nsu.logic.lang.compilation.common.*;
 import ru.nsu.logic.lang.compilation.compiler.CompiledClass;
@@ -155,7 +156,7 @@ abstract class VirtualMachineBase implements IVirtualMachine {
                 prepareArgs(method.getArguments(), callStmt.getCallParameters(), diagnosticMsg),
                 method.getBody());
 
-        pipeline.getCurrentEntry().initializeVariable("this", object);
+        pipeline.getCurrentEntry().initializeVariable("this", object.toBase(method.getOwner()));
         return retVal;
     }
 
@@ -185,9 +186,11 @@ abstract class VirtualMachineBase implements IVirtualMachine {
         /// Search for any non-default constructor
         Optional<ICompiledClass> currentClass = classToCreate;
         Optional<ICompiledMethod> constructor = Optional.empty();
+        EnumSet<AccessType> access = createStmt.getAccessMask();
         while (currentClass.isPresent() && !constructor.isPresent()) {
-            constructor = currentClass.get().getConstructor(createStmt.getAccessMask());
+            constructor = currentClass.get().getConstructor(access);
             currentClass = currentClass.get().getBase();
+            access = AccessType.Masks.PUBLIC_AND_PROTECTED; // search in base
         }
 
         final IObject actualObject = createStmt instanceof BaseConstructorCallStatement
@@ -227,7 +230,7 @@ abstract class VirtualMachineBase implements IVirtualMachine {
                                       final Map<String, IStatement> varInitializers,
                                       final List<IStatement> statements) {
         
-        System.out.println("[INFO] Extended pipeline for " + context + " from " + pipeline.getCurrentContext());
+        //System.out.println("[INFO] Extended pipeline for " + context + " from " + pipeline.getCurrentContext());
 
         final String uniqueName = pipeline.getCurrentEntry().pushTempVariable();
         final IPipelineEntry entry = new PipelineEntry(context, varInitializers, statements);

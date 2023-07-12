@@ -68,7 +68,7 @@ public class IterationStatement implements IStatement {
         }
 
         final State state = new State(this.state.iteration, this.state.formula, this.state.aggregate);
-        while (state.iteration < ((NumberValueStatement)maxIterations).asInt()) {
+        while (state.iteration < ((NumberValueStatement)maxIterationsExec.getValue()).asInt()) {
             /* Evaluate formula on current iter */
             if (null == state.formula)
                 state.formula = this.checkFormulaPrototype;
@@ -76,7 +76,7 @@ public class IterationStatement implements IStatement {
             final ExecutionResult<IFormula> formulaExec = state.formula.execute(machine);
             state.formula = formulaExec.getValue();
             if (!formulaExec.isCompleted())
-                return uncompleted(withInit(init).withState(state));
+                return uncompleted(withMaxIterations(maxIterationsExec.getValue()).withInit(init).withState(state));
 
             if (!((BooleanValueStatement)state.formula).getValue())
                 return iterVariable.execute(machine); // completed
@@ -88,7 +88,7 @@ public class IterationStatement implements IStatement {
             final ExecutionResult<IStatement> aggregateExec = state.aggregate.execute(machine);
             state.aggregate = aggregateExec.getValue();
             if (!aggregateExec.isCompleted())
-                return uncompleted(withInit(init).withState(state));
+                return uncompleted(withMaxIterations(maxIterationsExec.getValue()).withInit(init).withState(state));
 
             iterVariable.setValue(machine, aggregateExec.getValue());
 
